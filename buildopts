@@ -237,23 +237,23 @@ then
 			ARG_FLAG_NAME="${ARG_FLAG_SET[$OPTCOUNT]:1:${#ARG_FLAG_SET[$OPTCOUNT]}}"
 			OPT_NAME="$( echo ${ARG_FLAG_NAME} | tr [A-Z] [a-z] )"
 			printf -- \
-				"$(printf -- "-${OPT_NAME:0:1}|--${OPT_NAME} <arg>                     " | \
+				"$(printf -- "-${OPT_NAME:0:1} | --${OPT_NAME} <arg>                     " | \
 				head -c 30)" >> $FILENAME
 			printf "desc\n" >> $FILENAME
 
 		# Print formatted help without arguments.
 		else
 			printf -- \
-				"$(printf -- "-${OPTS_FROM_LIST[$OPTCOUNT]:0:1}|--${OPTS_FROM_LIST[$OPTCOUNT]}                      " | \
+				"$(printf -- "-${OPTS_FROM_LIST[$OPTCOUNT]:0:1} | --${OPTS_FROM_LIST[$OPTCOUNT]}                      " | \
 				head -c 30)" >> $FILENAME
 			printf "desc\n" >> $FILENAME
 		fi
 	done
 
 	printf -- '-v|--verbose                 ' | head -c 30 >> $FILENAME 
-	printf 'Be verbose in output.\n' >> $FILENAME
+	printf ' Be verbose in output.\n' >> $FILENAME
 	printf -- '-h|--help                    ' | head -c 30 >> $FILENAME
-	( printf 'Show this help and quit.\n"\n' 
+	( printf ' Show this help and quit.\n"\n' 
 	printf '   exit $STATUS\n'
 	printf '}\n\n' ) >> $FILENAME
 fi
@@ -282,7 +282,7 @@ then
 	printf '   case "$1" in\n' ) >> $FILENAME
 
 
-	# Generate list of keywords.
+	# Generate list of options. 
 	for OPTCOUNT in `seq $COUNTER $LIM`
 	do
 		#printf "Argument: ${ARG_SUB_SET[$OPTCOUNT]}"
