@@ -1,0 +1,233 @@
+#!/bin/bash -
+#-----------------------------------------------------#
+# buildsql
+#
+# Create SQLite tables quickly.
+#
+# ---------
+# Licensing
+# ---------
+# 
+# Copyright (c) 2013 Vokayent
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-----------------------------------------------------#
+PROGRAM="buildsql"
+DELIM=","
+JOIN="="
+
+# usage message
+# Show a usage message and die.
+usage() {
+   STATUS="${1:-0}"
+   echo "Usage: ./${PROGRAM}
+	[ -  ]
+
+-f | --from <list>            Iterate through <list> to create tables. 
+-i | --integer <arg>          Create each column in <arg> with type INTEGER. 
+-t | --text <arg>             Create each column in <arg> with type TEXT. 
+-b | --blob <arg>             Create each column in <arg> with type BLOB. 
+-r | --real <arg>             Create each column in <arg> with type REAL. 
+-g | --generate               Create each column in <arg> with type INTEGER.
+-m | --manifest               Generate the SQL tables from a manifest.
+-n | --name                   Set a table name.
+-s | --suppress-id            Skip the creation of an AUTOINCREMENT id field.
+-v|--verbose                  Be verbose in output.
+-h|--help                     Show this help and quit.
+"
+   exit $STATUS
+}
+
+
+# break-list - creates an array based on some set of delimiters.
+break_list_by_delim() {
+	mylist=(`printf $1 | sed "s/${DELIM}/ /g"`)
+	echo ${mylist[@]}		# Return the list all ghetto-style.
+}
+
+
+# Join each array so we can tell if the thing is present...
+# Quick ghetto way to check if an element is within something.
+# 
+# Ooh look!  It's a test!
+#declare -a jimmy
+#jimmy=("abc" "123" "def" "ghi")
+#is_element_present_in 'jimmy' "ghi"
+#exit 1
+is_element_present_in() {
+	# Catch arguments.
+	if [ -z "$1" ] || [ -z "$2" ]
+	then
+		echo "Improper arguments supplied to is_element_present_in()"
+		echo "You've made an error in coding!"
+		exit 1
+	fi
+
+	# Catch arguments.
+	ARR="$(eval 'echo ${'$1'[@]}')"
+	VS_ELE="$2"
+	STAT=
+
+	# Compare each element.
+	for ELE in ${ARR[@]}
+	do
+		[ $ELE == $VS_ELE ] && STAT="true" && break 
+	done
+
+	# Return a status.
+	[ -z $STAT ] && STAT="false"
+	echo $STAT
+}
+
+
+# Die on no options.
+[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
+
+# Options.
+while [ $# -gt 0 ]
+do
+   case "$1" in
+     -f|--from)
+         FROM=true
+         shift
+         FROM_ARG="$1"
+      ;;
+     -i|--integer)
+         shift
+         INTEGER_ARG="$1"
+      ;;
+     -x|--text)
+         shift
+         TEXT_ARG="$1"
+      ;;
+     -b|--blob)
+         shift
+         BLOB_ARG="$1"
+      ;;
+     -r|--real)
+         shift
+         REAL_ARG="$1"
+      ;;
+     -s|--suppress-id)
+         SUPPRESS_ID=true
+      ;;
+
+     -n|--name)
+			shift
+         TABLE_NAME="$1"
+      ;;
+     -g|--generate)
+         GENERATE=true
+      ;;
+     -m|--manifest)
+         MANIFEST=true
+      ;;
+		-t|--to)
+			shift
+			FILENAME=$1
+		;;
+      -v|--verbose)
+        VERBOSE=true
+      ;;
+      -h|--help)
+        usage 0
+      ;;
+      -*)
+      printf "Bad argument.\n";
+      exit 1
+     ;;
+      *) break;;
+   esac
+shift
+done
+
+
+# ...
+
+
+# Generate a file.
+FILENAME=${FILENAME:-'/dev/stdout'}
+if [[ ! $FILENAME == '/dev/stdout' ]] && [ -f $FILENAME ] && [ ! -z $CLOBBER ]
+then
+	rm $RM_FLAGS $FILENAME
+fi
+
+
+# If there's no list, manifest or file to read, this is pretty much useless.
+if [ -z "$FROM" ] || [[ "${FROM:0:1}" == '-' ]]
+then 
+	echo "No list supplied!" 
+	usage 1
+fi
+
+
+# Also stop if no table name.
+[ -z "$TABLE_NAME" ] && echo "No table name supplied!" && usage 1
+
+
+# Take our fields and turn them into columns.
+OPTS_FROM_LIST=( $( break_list_by_delim $FROM_ARG | tr [A-Z] [a-z] | tr '-' '_' ) )
+
+
+# Break each optional field.
+[ ! -z "$INTEGER_ARG" ] && INTEGER_ARG=( $(break_list_by_delim $INTEGER_ARG | tr [A-Z] [a-z] | tr '-' '_' ) )
+[ ! -z "$BLOB_ARG" ] && BLOB_ARG=( $(break_list_by_delim $BLOB_ARG | tr [A-Z] [a-z] | tr '-' '_' ) )
+[ ! -z "$REAL_ARG" ] && REAL_ARG=( $(break_list_by_delim $REAL_ARG | tr [A-Z] [a-z] | tr '-' '_' ) )
+
+
+# Start the table create statement.
+printf "CREATE TABLE $TABLE_NAME (\n" >> $FILENAME
+[ -z $SUPPRESS_ID ] && printf "\tid INTEGER PRIMARY KEY AUTOINCREMENT,\n" >> $FILENAME
+
+
+
+# Generate list of options. 
+declare -a SUPPLIED_COLTYPES
+SUPPLIED_COLTYPES=( "INTEGER" "BLOB" "REAL"  )
+COUNTER=0
+LIM=$(( ${#OPTS_FROM_LIST[@]} - 1 ))
+for OPTARGN in ${OPTS_FROM_LIST[@]}
+do
+	# If it's in this column.
+	COLUMN_TYPE="TEXT"
+	for MY_TYPE in ${SUPPLIED_COLTYPES[@]} 
+	do
+		if [ $(is_element_present_in "${MY_TYPE}_ARG" $OPTARGN) == 'true' ] 
+		then 
+			COLUMN_TYPE=$MY_TYPE 
+			break
+		fi
+	done
+
+	# Print out the column index and type.
+	printf "\t${OPTARGN} $COLUMN_TYPE" >> $FILENAME
+
+	# Find the end.
+	if [[ ! "$OPTARGN" == "${OPTS_FROM_LIST[$LIM]}" ]] 
+	then
+		printf ',\n' >> $FILENAME
+	fi
+	# Not handling views yet,
+	# Nor are we handling foreign keys...
+done
+printf '\n);\n' >> $FILENAME
+
+
+
