@@ -1,0 +1,23 @@
+# Strings 
+break_list_by_delim: Creates an array based on a string containing delimiters.
+break_maps_by_delim: Creates a key to value pair based on a string containing delimiters.
+
+# Databases 
+load_from_db_columns: Create a variable in Bash out of each column header in a table and fill it with information found in that column.
+modify_from_db_columns: Load data from database and edit from a temporary file, writing back the results.
+
+# Math 
+
+# Random 
+
+# Integers
+
+# Arrays 
+is_element_present_in: Return true or false if an element is found in an array.
+
+# Arguments
+eval_flags: Expands flags for commonly used programs based on verbosity settings.
+die_on_improper_type: Exits script if an argument of wrong type is received. 
+
+# Interaction
+create_menu: Creates a menu.

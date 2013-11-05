@@ -1,1 +1,242 @@
-#!/bin/bash
+#!/bin/bash -
+#-----------------------------------------------------#
+# buildlib
+#
+# Builds a library to ship with a shell script
+#-----------------------------------------------------#
+#-----------------------------------------------------#
+# Licensing
+# ---------
+# 
+# Copyright (c) 2013 Vokayent
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-----------------------------------------------------#
+PROGRAM="buildlib"
+
+
+#-----------------------------------------------------#
+#
+# Strings
+#-----------------------------------------------------#
+# break_list_by_delim() 
+# creates an array based on some set of delimiters.
+break_list_by_delim() {
+	mylist=(`printf $1 | sed "s/${DELIM}/ /g"`)
+	echo ${mylist[@]}		# Return the list all ghetto-style.
+} # break_list_by_delim()
+
+
+# break_maps_by_delim() 
+# gives a map based on a set of delimiters.
+break_maps_by_delim() {
+	join="${2-=}"			# Allow for an alternate map marker.
+	local m=(`printf $1 | sed "s/${join}/ /g"`)
+	echo ${m[@]}			# Return the list all ghetto-style.
+} # break_maps_by_delim()  
+
+
+#-----------------------------------------------------#
+#
+# Arrays 
+#-----------------------------------------------------#
+# is_element_present_in() 
+# Check if $2 is found within array $1
+is_element_present_in() {
+	# Catch arguments.
+	if [ -z "$1" ] || [ -z "$2" ]
+	then
+		echo "Improper arguments supplied to is_element_present_in()"
+		echo "You've made an error in coding!"
+		exit 1
+	fi
+
+	# Catch arguments.
+	ARR="$(eval 'echo ${'$1'[@]}')"
+	VS_ELE="$2"
+	STAT=
+
+	# Compare each element.
+	for ELE in ${ARR[@]}
+	do
+		[ $ELE == $VS_ELE ] && STAT="true" && break 
+	done
+
+	# Return a status.
+	[ -z $STAT ] && STAT="false"
+	echo $STAT
+} # is_element_present_in() 
+
+
+# usage() - Show usage message and die with $STATUS
+usage() {
+   STATUS="${1:-0}"
+   echo "Usage: ./${PROGRAM}
+	[ -  ]
+
+-m | --manifest               desc
+-l | --list                   desc
+-w | --with <arg>             desc
+-d | --depcheck <arg>         desc
+-n | --name <arg>             desc
+-s | --standard_dirs <arg>    desc
+-d | --db                     desc
+-i | --initial-run            desc
+-s | --security               desc
+-i | --install                desc
+-u | --uninstall              desc
+-v|--verbose                  Be verbose in output.
+-h|--help                     Show this help and quit.
+"
+   exit $STATUS
+}
+
+
+# Die if no arguments received.
+[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
+# Process options.
+while [ $# -gt 0 ]
+do
+   case "$1" in
+     -m|--manifest)
+         DO_MANIFEST=true
+      ;;
+     -l|--list)
+         DO_LIST=true
+      ;;
+     -w|--with)
+         DO_WITH=true
+         shift
+         WITH="$1"
+      ;;
+     -d|--depcheck)
+         DO_DEPCHECK=true
+         shift
+         DEPCHECK="$1"
+      ;;
+     -n|--name)
+         DO_NAME=true
+         shift
+         NAME="$1"
+      ;;
+     -s|--standard_dirs)
+         DO_STANDARD_DIRS=true
+         shift
+         STANDARD_DIRS="$1"
+      ;;
+     -d|--db)
+         DO_DB=true
+      ;;
+     -i|--initial-run)
+         DO_INITIAL_RUN=true
+      ;;
+     -s|--security)
+         DO_SECURITY=true
+      ;;
+     -i|--install)
+         DO_INSTALL=true
+      ;;
+     -u|--uninstall)
+         DO_UNINSTALL=true
+      ;;
+      -v|--verbose)
+        VERBOSE=true
+      ;;
+      -h|--help)
+        usage 0
+      ;;
+      -*)
+      printf "Bad argument.\n";
+      exit 1
+     ;;
+      *) break;;
+   esac
+shift
+done
+
+# manifest
+if [ ! -z $DO_MANIFEST ]
+then
+   echo '...'
+fi
+
+# list
+if [ ! -z $DO_LIST ]
+then
+	# Find each function name ( # [a-z]() )
+	# Get the name, range of description, and range of function.
+	# Save all of these to array.
+	# Should work on both DO_WITH and DO_LIST
+   echo '...'
+fi
+
+# with
+if [ ! -z $DO_WITH ]
+then
+   echo '...'
+fi
+
+# depcheck
+if [ ! -z $DO_DEPCHECK ]
+then
+   echo '...'
+fi
+
+# name
+if [ ! -z $DO_NAME ]
+then
+   echo '...'
+fi
+
+# standard_dirs
+if [ ! -z $DO_STANDARD_DIRS ]
+then
+   echo '...'
+fi
+
+# db
+if [ ! -z $DO_DB ]
+then
+   echo '...'
+fi
+
+# initial_run
+if [ ! -z $DO_INITIAL_RUN ]
+then
+   echo '...'
+fi
+
+# security
+if [ ! -z $DO_SECURITY ]
+then
+   echo '...'
+fi
+
+# install
+if [ ! -z $DO_INSTALL ]
+then
+   echo '...'
+fi
+
+# uninstall
+if [ ! -z $DO_UNINSTALL ]
+then
+   echo '...'
+fi

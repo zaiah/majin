@@ -1,11 +1,12 @@
 
-buildlib
+buildopts
+
+x check for letters that already exist
+add additional licenses
+? include (files from bindir)
+	should bindir be here?
+x only-options (indicate which options should not get logic blocks)
+x implement manifests (for descriptions)
 
 
-A lot of scripts still need the same thing...
-like string libraries...
-includes (of certain files)
-creation of sql tables
-and other stuff that was already in bashkit
 
-This should be a pretty easy way to define what you want and need ahead of time...

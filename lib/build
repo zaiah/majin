@@ -1,10 +1,10 @@
 #!/bin/bash -
 #-----------------------------------------------------#
-# install
+# build
 #
-#
-#
-# ---------
+# Compile a single file of libraries so that you don't have to parse for stuff every time.
+#-----------------------------------------------------#
+#-----------------------------------------------------#
 # Licensing
 # ---------
 # 
@@ -28,17 +28,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #-----------------------------------------------------#
+PROGRAM="build"
 
-# usage message
-# Show a usage message and die.
+# usage() - Show usage message and die with $STATUS
 usage() {
    STATUS="${1:-0}"
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--i | --install                desc
--u | --uninstall              desc
--a | --at <arg>               desc
+-d | --databases              desc
+-a | --arguments              desc
+-r | --random                 desc
+-s | --strings                desc
+-i | --integers               desc
+-m | --math                   desc
+-a | --arrays                 desc
+-a | --all                    desc
 -v|--verbose                  Be verbose in output.
 -h|--help                     Show this help and quit.
 "
@@ -46,20 +51,36 @@ usage() {
 }
 
 
+# Die if no arguments received.
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
+# Process options.
 while [ $# -gt 0 ]
 do
    case "$1" in
-     -i|--install)
-         INSTALL=true
+     -d|--databases)
+         DO_DATABASES=true
       ;;
-     -u|--uninstall)
-         UNINSTALL=true
+     -a|--arguments)
+         DO_ARGUMENTS=true
       ;;
-     -a|--at)
-         AT=true
-         shift
-         AT_ARG=$1
+     -r|--random)
+         DO_RANDOM=true
+      ;;
+     -s|--strings)
+         DO_STRINGS=true
+      ;;
+     -i|--integers)
+         DO_INTEGERS=true
+      ;;
+     -m|--math)
+         DO_MATH=true
+      ;;
+     -a|--arrays)
+         DO_ARRAYS=true
+      ;;
+     -a|--all)
+         DO_ALL=true
       ;;
       -v|--verbose)
         VERBOSE=true
@@ -76,17 +97,50 @@ do
 shift
 done
 
-if [ ! -z $INSTALL ]
+# databases
+if [ ! -z $DO_DATABASES ]
 then
    echo '...'
 fi
 
-if [ ! -z $UNINSTALL ]
+# arguments
+if [ ! -z $DO_ARGUMENTS ]
 then
    echo '...'
 fi
 
-if [ ! -z $AT ]
+# random
+if [ ! -z $DO_RANDOM ]
+then
+   echo '...'
+fi
+
+# strings
+if [ ! -z $DO_STRINGS ]
+then
+   echo '...'
+fi
+
+# integers
+if [ ! -z $DO_INTEGERS ]
+then
+   echo '...'
+fi
+
+# math
+if [ ! -z $DO_MATH ]
+then
+   echo '...'
+fi
+
+# arrays
+if [ ! -z $DO_ARRAYS ]
+then
+   echo '...'
+fi
+
+# all
+if [ ! -z $DO_ALL ]
 then
    echo '...'
 fi
