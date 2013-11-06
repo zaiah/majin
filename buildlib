@@ -33,9 +33,18 @@ SELF="$(readlink -f $0)"
 LIB="${BINDIR}/lib.complete"
 source $LIB
 PROGRAM="buildlib"
+
+# Manifests 
+LIB_MANIFEST="lib/gen.manifest"
+LOOKUP_MANIFEST="lib/lookup.manifest"
+
+# Filenames
+FILENAME="/dev/stdout"
+FILEERR="/dev/stderr"
+
+# Gotta deal with these within the lib.
 DELIM=","
 JOIN="="
-
 
 # usage() - Show usage message and die with $STATUS
 usage() {
@@ -92,11 +101,9 @@ General Options:
 while [ $# -gt 0 ]
 do
    case "$1" in
-     -g|--from-groups)
-         DO_GROUPS=true
-         shift
-         WITH_GROUPS="$1"
-      ;;
+	  -c|--comments)
+			DO_COMMENTS=true
+		;;
      -w|--with)
          DO_WITH=true
          shift
@@ -112,13 +119,9 @@ do
          shift
          NAMESPACE="$1"
       ;;
-     -s|--specify-with)
+     --specify-with)
+         DO_WITH=true
          DO_SPECIFY_WITH=true
-      ;;
-     -?|--describe)
-         DO_DESCRIBE=true
-         shift
-         DESCRIBE="$1"
       ;;
      -e|--executables)
          DO_EXECUTABLES=true
@@ -133,12 +136,12 @@ do
      -d|--depcheck)
          DO_DEPCHECK=true
       ;;
-     -s|--standard_dirs)
+     -t|--standard-dirs)
          DO_STANDARD_DIRS=true
          shift
          STANDARD_DIRS="$1"
       ;;
-     -d|--db)
+     -b|--db)
          DO_DB=true
       ;;
      -i|--initial-run)
@@ -147,12 +150,20 @@ do
      -s|--security)
          DO_SECURITY=true
       ;;
+     -?|--describe)
+         DO_DESCRIBE=true
+         shift
+         DESCRIBE="$1"
+      ;;
       -v|--verbose)
         VERBOSE=true
       ;;
       -h|--help)
         usage 0
       ;;
+      --)
+		break
+     ;;
       -*)
       printf "Bad argument.\n";
       exit 1
@@ -163,19 +174,11 @@ shift
 done
 
 
-# Other common stuff
-LIB_MANIFEST="lib/gen.manifest"
-LOOKUP_MANIFEST="lib/gen.manifest"
+# Verbosity
+eval_flags
 
 
-# with
-if [ ! -z $DO_WITH ]
-then
-   # For each in the with list, cat.
-	
 
-	# If you want comments, better say so.
-fi
 
 # list
 if [ ! -z $DO_LIST ]
@@ -213,17 +216,6 @@ then
 	grep "$DESCRIBE" $LIB_MANIFEST
 fi
 
-# specify_with
-if [ ! -z $DO_SPECIFY_WITH ]
-then
-   echo '...'
-fi
-
-# executables
-if [ ! -z $DO_EXECUTABLES ]
-then
-   echo '...'
-fi
 
 # depcheck
 if [ ! -z $DO_DEPCHECK ]
@@ -231,32 +223,206 @@ then
    echo '...'
 fi
 
+
+# executables
+if [ ! -z $DO_EXECUTABLES ]
+then
+	# Die on no argument received.
+	[ -z "$EXECUTABLES" ] && echo "Nothing supplied to --executables flag!" && usage 1
+  	EXECUTABLES="$(break_list_by_delim "$EXECUTABLES")"
+
+	# Don't want to run a find everytime for certain... 
+	# printf 'dep_locate(){\n\tMOV_CHECK=( which, locate, find )\n\t'
+	# printf 
+	# dep_locate is going to point to which.  If there is no which you want this script to die.
+
+	# Comments 
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
+
+	# Have the script run a check for each.
+	for ETERM in ${EXECUTABLES[@]}
+	do
+		printf "${ETERM}=" | tr '[a-z]' '[A-Z]'
+		printf "\"\$(which ${ETERM})\"\n"
+	done	
+
+	# Have the script run a check for each.
+	printf "DEPS=( "
+	for ETERM in ${EXECUTABLES[@]}
+	do
+		printf "\"\$${ETERM}\" " | tr '[a-z]' '[A-Z]'
+	done
+	printf ")\n\n" ) >> $FILENAME	
+fi
+
+
+# create standard directories 
+if [ ! -z $DO_STANDARD_DIRS ]
+then
+	# Die on no argument received.
+	[ -z "$STANDARD_DIRS" ] && echo "Nothing supplied to --standard-dirs flag!" >> $FILEERR && usage 1
+  	STANDARD_DIRS_ARR="$(break_list_by_delim "$STANDARD_DIRS")"
+
+	# Comments 
+	[ ! -z "$DO_COMMENTS" ] && printf "# Standard directories\n"
+
+	# Always do the first few directories.
+	printf "PROGRAM_DIR=\"\$HOME/.\${PROGRAM}\"\n"
+
+	# Have the script run a check for each.
+	for SDIR in ${STANDARD_DIRS_ARR[@]}
+	do
+		printf "${SDIR}_DIR=" | tr '[a-z]' '[A-Z]'
+		printf "\"\${PROGRAM_DIR}/${SDIR}\"\n"
+	done	
+
+	# Then host dirs.
+	printf "HOST_DIRS=( \"\${PROGRAM_DIR}\" "
+	for SDIR in ${STANDARD_DIRS_ARR[@]}
+	do
+		# Have to evaluate absolute names here, lest we don't want stuff in the program directory.	
+		printf "\"\${PROGRAM_DIR}/${SDIR}\" "
+	done	
+	printf ")\n\n" 
+fi
+
+
+# Create static variables. 
+if [ ! -z $DO_STATIC ]
+then
+	# Die on no argument received.
+	[ -z "$STATIC" ] && echo "Nothing supplied to --static flag!" && usage 1
+  	STATIC_ARR="$(break_list_by_delim "$STATIC")"
+
+	# Comments 
+	[ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
+
+	# Have the script run a check for each.
+	for SVAR in ${STATIC_ARR[@]}
+	do
+		if [[ "$SVAR" =~ "=" ]]
+		then
+			# Is this a key value pair
+			printf ${SVAR%%=*} | tr '[a-z]' '[A-Z]'
+			printf "=\"${SVAR##*=}\"\n"   
+
+		else
+			# If not, then just make a spot for it.
+			printf "${SVAR}=\n" | tr '[a-z]' '[A-Z]'
+		fi
+	done	
+fi
+
+
 # db
 if [ ! -z $DO_DB ]
 then
-   echo '...'
+ 	printf "DB=\"${PROGRAM_DIR}/${PROGRAM}.db\"\n"  
+ 	printf "BIN_SQL_DIR=\"${BINDIR}/sql\"\n\n"  
 fi
+
 
 # initial_run
 if [ ! -z $DO_INITIAL_RUN ]
 then
-   echo '...'
+   ( 
+	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" >> $FILENAME
+	printf "initial_deploy() {\n\tfor E in \${DEPS[@]}\n\tdo " >> $FILENAME
+
+	# Comments 
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t\t# Run basic dependency checks." >> $FILENAME
+
+	printf "
+		if [ -z \"\$E\" ] || [ ! -x \"\$E\" ] 
+		then
+			echo \"\$E is not on system.\"
+			exit 1
+		fi
+	done
+	" >> $FILENAME
+
+	# Comments 
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Create all directories in \$HOST_DIRS" >> $FILENAME
+	
+	printf "
+	for D in \${HOST_DIRS[@]}
+	do
+		mkdir -p \"\$D\"
+	done" >> $FILENAME
+	
+	
+	# Comments 
+	if [ ! -z $DO_DB ]
+	then
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\n\t# Create tables" >> $FILENAME
+
+		printf "	
+	for SD in \$( ls \$BIN_SQL_DIR )
+	do
+		\$SQLITE \$DB < \$SD
+	done"
+	fi
+
+	printf '\n}\n'
+	) >> $FILENAME
 fi
+
 
 # security
 if [ ! -z $DO_SECURITY ]
 then
+	printf '\n' >> $FILENAME
    # Set the right internal field seperator for command line args. 
-	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args." >> $FILENAME
-	printf "IFS=' \n\t'"  >> $FILENAME
+	# [ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args." >> $FILENAME
+	# printf "IFS=' \n\t'"  >> $FILENAME
 
 	# Limits file creation permissions. 
-	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions." >> $FILENAME
-	( printf "UMASK=002" 
-	printf 'umask $UMASK' ) >> $FILENAME
+	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions.\n" >> $FILENAME
+	( printf "UMASK=002\n" 
+	printf 'umask $UMASK\n\n' ) >> $FILENAME
 
 	# Set a normal path. 
-	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path." >> $FILENAME
-	( printf 'PATH="/usr/local/bin:/bin:/usr/bin"' 
-	printf 'export PATH' ) >> $FILENAME
+	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path.\n" >> $FILENAME
+	( printf 'PATH="/usr/local/bin:/bin:/usr/bin"\n' 
+	printf 'export PATH\n' ) >> $FILENAME
 fi
+
+
+# with
+if [ ! -z $DO_WITH ]
+then
+	# specify_with
+	if [ ! -z $DO_SPECIFY_WITH ]
+	then
+   	echo '...'
+	fi
+
+   # For each in the with list, cat.
+	[ -z "$WITH" ] && echo "Nothing supplied to --with flag!" && usage 1
+	WITH=$(break_list_by_delim "$WITH")	
+
+	# Lines.
+	while read line
+	do
+		# Save this b/c it's our folder name for different lib functions.
+		if [[ ${line:0:1} == '#' ]] 
+		then
+			continue
+
+		# Move through blanks.
+		elif [[ -z "${line}" ]]
+		then
+			continue	
+
+		# You have hit gold...
+		else
+			printf "  $line" | \
+				sed 's/\r//' | \
+				awk -F ':' '{print $1 ":          "}' | \
+				head -c 25 
+			printf "$line" | awk -F ':' '{print $2}' 
+		fi
+	done < $LOOKUP_MANIFEST
+fi
+
+
