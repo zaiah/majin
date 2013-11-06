@@ -10,9 +10,6 @@ modify_from_db_columns: Load data from database and edit from a temporary file, 
 
 convert: Prepares records to be placed into a SQLite 3 database.
 
-# Typecheck
-typecheck: Performs a typecheck on $1
-
 # Math 
 
 # Random 
@@ -28,6 +25,7 @@ is_element_present_in: Return true or false if an element is found in an array.
 eval_flags: Expands flags for commonly used programs based on verbosity settings.
 die_on_improper_type: Exits script if an argument of wrong type is received. 
 is_flag: Return status if $1 is a flag or not
+typecheck: Performs a typecheck on $1
 
 # Interaction
 create_menu: Creates a menu.

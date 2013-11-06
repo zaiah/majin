@@ -1,14 +1,14 @@
 #!/bin/bash -
+#------------------------------------------------------
+# typecheck() 
+# 
+# Return on proper types...?
 #-----------------------------------------------------#
-# convert
-#
-# Prepares records to be placed into a SQLite 3 database.
-#-----------------------------------------------------#
-convert() {
+typecheck() {
 	# Is this null?
 	if [ -z $1 ]
 	then
-		printf "''"
+		printf "null"
 
 	# Is this an integer?
 	else
@@ -18,10 +18,10 @@ convert() {
 		# Still should probably catch strings.
 		if [ ! $STAT == 0 ]
 		then
-			printf "'$1'"
+			printf "string"
 		else
 			# Is string 
-			printf $1 
+			printf "integer"
 		fi
 	fi
 }

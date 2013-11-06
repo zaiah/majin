@@ -2,7 +2,7 @@
 #-----------------------------------------------------#
 # buildlib
 #
-# Builds a library to ship with a shell script
+# Builds a portable library for shell script programs.
 #-----------------------------------------------------#
 #-----------------------------------------------------#
 # Licensing
@@ -29,60 +29,8 @@
 # THE SOFTWARE.
 #-----------------------------------------------------#
 PROGRAM="buildlib"
-
-
-#-----------------------------------------------------#
-#
-# Strings
-#-----------------------------------------------------#
-# break_list_by_delim() 
-# creates an array based on some set of delimiters.
-break_list_by_delim() {
-	mylist=(`printf $1 | sed "s/${DELIM}/ /g"`)
-	echo ${mylist[@]}		# Return the list all ghetto-style.
-} # break_list_by_delim()
-
-
-# break_maps_by_delim() 
-# gives a map based on a set of delimiters.
-break_maps_by_delim() {
-	join="${2-=}"			# Allow for an alternate map marker.
-	local m=(`printf $1 | sed "s/${join}/ /g"`)
-	echo ${m[@]}			# Return the list all ghetto-style.
-} # break_maps_by_delim()  
-
-
-#-----------------------------------------------------#
-#
-# Arrays 
-#-----------------------------------------------------#
-# is_element_present_in() 
-# Check if $2 is found within array $1
-is_element_present_in() {
-	# Catch arguments.
-	if [ -z "$1" ] || [ -z "$2" ]
-	then
-		echo "Improper arguments supplied to is_element_present_in()"
-		echo "You've made an error in coding!"
-		exit 1
-	fi
-
-	# Catch arguments.
-	ARR="$(eval 'echo ${'$1'[@]}')"
-	VS_ELE="$2"
-	STAT=
-
-	# Compare each element.
-	for ELE in ${ARR[@]}
-	do
-		[ $ELE == $VS_ELE ] && STAT="true" && break 
-	done
-
-	# Return a status.
-	[ -z $STAT ] && STAT="false"
-	echo $STAT
-} # is_element_present_in() 
-
+DELIM=","
+JOIN="="
 
 # usage() - Show usage message and die with $STATUS
 usage() {
@@ -90,19 +38,24 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--m | --manifest               desc
--l | --list                   desc
--w | --with <arg>             desc
--d | --depcheck <arg>         desc
--n | --name <arg>             desc
--s | --standard_dirs <arg>    desc
--d | --db                     desc
--i | --initial-run            desc
--s | --security               desc
--i | --install                desc
--u | --uninstall              desc
--v|--verbose                  Be verbose in output.
--h|--help                     Show this help and quit.
+-w | --with <arg>             Build library with functions listed in <arg> 
+-l | --list                   List all available functions. 
+-? | --describe <arg>         Describe function <arg>.
+-n | --namespace <arg>        Build library functions with a different 
+                              naming convention.
+-s | --specify-with           Use a menu to choose library list.
+-e | --executables <arg>      Convert names in <arg> to variables that alias
+                              programs located in your \$PATH
+-s | --static <arg>           Convert names in <arg> to variables pointing to 
+                              immutable values. 
+-d | --depcheck               Generate code to run a dependency check.
+-s | --standard_dirs <arg>    Convert names in <arg> to variables that 
+                              reference your program's common directories.
+-d | --db                     Generate code to create a database. 
+-i | --initial-run            Generate code to install a shell script.
+-s | --security               Generate code to secure a shell script.
+-v | --verbose                Be verbose in output.
+-h | --help                   Show this help and quit.
 "
    exit $STATUS
 }
@@ -115,26 +68,36 @@ usage() {
 while [ $# -gt 0 ]
 do
    case "$1" in
-     -m|--manifest)
-         DO_MANIFEST=true
-      ;;
-     -l|--list)
-         DO_LIST=true
-      ;;
      -w|--with)
          DO_WITH=true
          shift
          WITH="$1"
       ;;
+     -l|--list)
+         DO_LIST=true
+         shift
+         LIST="$1"
+      ;;
+     -n|--namespace)
+         DO_NAMESPACE=true
+         shift
+         NAMESPACE="$1"
+      ;;
+     -s|--specify-with)
+         DO_SPECIFY_WITH=true
+      ;;
+     -e|--executables)
+         DO_EXECUTABLES=true
+         shift
+         EXECUTABLES="$1"
+      ;;
+     -s|--static)
+         DO_STATIC=true
+         shift
+         STATIC="$1"
+      ;;
      -d|--depcheck)
          DO_DEPCHECK=true
-         shift
-         DEPCHECK="$1"
-      ;;
-     -n|--name)
-         DO_NAME=true
-         shift
-         NAME="$1"
       ;;
      -s|--standard_dirs)
          DO_STANDARD_DIRS=true
@@ -149,12 +112,6 @@ do
       ;;
      -s|--security)
          DO_SECURITY=true
-      ;;
-     -i|--install)
-         DO_INSTALL=true
-      ;;
-     -u|--uninstall)
-         DO_UNINSTALL=true
       ;;
       -v|--verbose)
         VERBOSE=true
@@ -171,21 +128,11 @@ do
 shift
 done
 
-# manifest
-if [ ! -z $DO_MANIFEST ]
-then
-   echo '...'
-fi
 
-# list
-if [ ! -z $DO_LIST ]
-then
-	# Find each function name ( # [a-z]() )
-	# Get the name, range of description, and range of function.
-	# Save all of these to array.
-	# Should work on both DO_WITH and DO_LIST
-   echo '...'
-fi
+# Other common stuff
+LIB_MANIFEST="lib/gen.manifest"
+LOOKUP_MANIFEST="lib/gen.manifest"
+
 
 # with
 if [ ! -z $DO_WITH ]
@@ -193,20 +140,51 @@ then
    echo '...'
 fi
 
+# list
+if [ ! -z $DO_LIST ]
+then
+	# Regen doc.
+	while read line
+	do
+		# Save this b/c it's our folder name for different lib functions.
+		if [[ ${line:0:1} == '#' ]] 
+		then
+			echo "In $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:"
+			continue
+
+		# Move through blanks.
+		elif [[ -z "${line}" ]]
+		then
+			continue	
+
+		# You have hit gold...
+		else
+			printf "$line" | awk -F ':' '{print $1 " -" $2}' 
+		fi
+	done < $LIB_MANIFEST
+fi
+
+
+# Describe one thing at a time.
+if [ ! -z $DO_DESCRIBE ]
+then
+	echo '...'
+fi
+
+# specify_with
+if [ ! -z $DO_SPECIFY_WITH ]
+then
+   echo '...'
+fi
+
+# executables
+if [ ! -z $DO_EXECUTABLES ]
+then
+   echo '...'
+fi
+
 # depcheck
 if [ ! -z $DO_DEPCHECK ]
-then
-   echo '...'
-fi
-
-# name
-if [ ! -z $DO_NAME ]
-then
-   echo '...'
-fi
-
-# standard_dirs
-if [ ! -z $DO_STANDARD_DIRS ]
 then
    echo '...'
 fi
@@ -225,18 +203,6 @@ fi
 
 # security
 if [ ! -z $DO_SECURITY ]
-then
-   echo '...'
-fi
-
-# install
-if [ ! -z $DO_INSTALL ]
-then
-   echo '...'
-fi
-
-# uninstall
-if [ ! -z $DO_UNINSTALL ]
 then
    echo '...'
 fi
