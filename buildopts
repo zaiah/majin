@@ -259,9 +259,15 @@ do
 		-h|--help)
 		usage 0
 		;;
-		-*)
+
+		--)
 		;;
-		*)
+
+		-*) echo "Unknown argument received."
+			 usage 1
+		;;
+
+		*) break # Is this smart?
 		;;
 	esac
 shift
@@ -497,9 +503,9 @@ then
 	done
 
 	printf -- '-v | --verbose                 ' | head -c 30 >> $FILENAME 
-	printf ' Be verbose in output.\n' >> $FILENAME
+	printf 'Be verbose in output.\n' >> $FILENAME
 	printf -- '-h | --help                    ' | head -c 30 >> $FILENAME
-	( printf ' Show this help and quit.\n"\n' 
+	( printf 'Show this help and quit.\n"\n' 
 	printf '   exit $STATUS\n'
 	printf '}\n\n' ) >> $FILENAME
 fi
@@ -574,12 +580,33 @@ then
 	done	
 
 
-	# End the arguments.
+	# End the flags.
  ( printf '     -v|--verbose)\n        VERBOSE=true\n      ;;\n' 
-   printf '     -h|--help)\n        usage 0\n      ;;\n' 
+   printf '     -h|--help)\n        '
+
+	# Show the correct exit code.
+	if [ ! -z $SHOW_USAGE ]
+	then
+		printf 'usage 0\n      ;;\n' 			# Only if USAGE was asked for.
+	else
+		printf 'exit 0\n       ;;\n'
+	fi
+
+	# Catch the signal for the end of the flags.
+ 	printf '     --) break;;\n'
+
+	# Catch unknown flags and show correct exit code.
  	printf '     -*)\n   ' 
-	printf '   printf \"Bad argument.\\n\";\n      exit 1\n     ;;\n'
-	printf '      *) break;;\n'
+	printf '   printf \"Unknown argument received.\\n\";\n'
+	if [ ! -z $SHOW_USAGE ]
+	then
+		printf '      usage 1\n     ;;\n'
+	else
+		printf '      exit 1\n     ;;\n'
+	fi
+
+	# Skip arguments.
+	printf '     *) break;;\n'
 	printf '   esac\nshift\n'	
 	printf 'done\n' ) >> $FILENAME
 fi
