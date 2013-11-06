@@ -29,6 +29,10 @@
 # THE SOFTWARE.
 #-----------------------------------------------------#
 PROGRAM="build"
+DELIM=","
+JOIN="="
+FULL_LIB="../lib.complete"
+source $FULL_LIB
 
 # usage() - Show usage message and die with $STATUS
 usage() {
@@ -36,14 +40,18 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--d | --databases              desc
--g | --arguments              desc
--r | --random                 desc
--s | --strings                desc
--i | --integers               desc
--m | --math                   desc
--a | --arrays                 desc
--x | --all                    desc
+-c | --comments               Include comments in library. (default includes comments :) )
+-d | --databases              Concatenate only database functions into a library.
+-g | --arguments              Concatenate only argument functions into a library.
+-r | --random                 Concatenate only functions dealing with randomness into a library.
+-s | --strings                Concatenate only string functions into a library.
+-i | --integers               Concatenate only integer functions into a library.
+-m | --math                   Concatenate only math functions into a library.
+-a | --arrays                 Concatenate only array functions into a library. 
+-z | --all                    Concatenate all functions into a library. 
+-y | --rebuild-from-manifest  Rebuilds documentation for each reference in the current manifest.
+                              (Also creates new files for functions that don't currently exist.)
+-x | --exclude <list>         Exclude functions in <list> when using --all. 
 -v | --verbose                Be verbose in output.
 -h | --help                   Show this help and quit.
 "
@@ -51,36 +59,53 @@ usage() {
 }
 
 
+# Common stuff.
+LIB_MANIFEST="gen.manifest"
+LOOKUP_MANIFEST="lookup.manifest"
+
+
 # Die if no arguments received.
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
 
 # Process options.
 while [ $# -gt 0 ]
 do
    case "$1" in
+     -c|--comments)
+         DO_COMMENTS=true
+      ;;
      -d|--databases)
-         DO_DATABASES=true
+         DO_BUILD="databases"
       ;;
      -g|--arguments)
-         DO_ARGUMENTS=true
+         DO_BUILD="arguments"
       ;;
      -r|--random)
-         DO_RANDOM=true
+         DO_BUILD="random"
       ;;
      -s|--strings)
-         DO_STRINGS=true
+         DO_BUILD="strings"
       ;;
      -i|--integers)
-         DO_INTEGERS=true
+         DO_BUILD="integers"
       ;;
      -m|--math)
-         DO_MATH=true
+         DO_BUILD="math"
       ;;
      -a|--arrays)
-         DO_ARRAYS=true
+         DO_BUILD="arrays"
       ;;
-     -x|--all)
+     -z|--all)
          DO_ALL=true
+      ;;
+     -y|--rebuild-from-manifest)
+         DO_REBUILD=true
+      ;;
+     -x|--exclude)
+         DO_EXCLUDE=true
+			shift
+         EXCLUDE_THESE="$1"
       ;;
       -v|--verbose)
         VERBOSE=true
@@ -97,50 +122,146 @@ do
 shift
 done
 
-# databases
-if [ ! -z $DO_DATABASES ]
+
+# Verbosity flags.
+eval_flags
+
+
+# Chop up my excludes early.
+[ ! -z "$EXCLUDE_THESE" ] && EXCLUDE_THESE="$(break_list_by_delim "$EXCLUDE_THESE")"
+
+
+# I can save many lines with this...
+if [ ! -z $DO_BUILD ]
 then
-   echo '...'
+	LIB_CHOICE=( $( ls $DO_BUILD ) )
+	for FR in ${LIB_CHOICE[@]}
+	do
+		# List each line.
+		LIB_FILE="${DO_BUILD}/${FR}"
+		LIB_FNAME="$(basename ${DO_BUILD}/${FR%%.sh})"
+		FL=$(wc -l "$LIB_FILE" | cut -d ' ' -f 1)
+
+		# Did the user ask that this be excluded?
+		[ ! -z $EXCLUDE_THESE ] && [[ $(is_element_present_in 'EXCLUDE_THESE' "$LIB_FNAME") == 'true' ]] && continue 
+		
+		# Also evaluate namespaces here.
+		# grep -n -v '#' $LIB_FILE  # Can get the first line this way kind of...
+		# exit
+		# Did the user ask that this be excluded?
+		# [ ! -z $EXCLUDE_THESE ] && [[ $(is_element_present_in 'EXCLUDE_THESE' $FNAME) == 'true' ]] && continue 
+
+		# You might not want comments. 
+		sed -n 2,${FL}p $LIB_FILE #| sed ${FL}'s/$/ssdfdfs/'
+		printf "\n"
+		#	echo	sed -n 2,${FL}p $LIB_FILE '|' sed "${FL}s/$/\n\n/"
+	done
 fi
 
-# arguments
-if [ ! -z $DO_ARGUMENTS ]
-then
-   echo '...'
-fi
-
-# random
-if [ ! -z $DO_RANDOM ]
-then
-   echo '...'
-fi
-
-# strings
-if [ ! -z $DO_STRINGS ]
-then
-   echo '...'
-fi
-
-# integers
-if [ ! -z $DO_INTEGERS ]
-then
-   echo '...'
-fi
-
-# math
-if [ ! -z $DO_MATH ]
-then
-   echo '...'
-fi
-
-# arrays
-if [ ! -z $DO_ARRAYS ]
-then
-   echo '...'
-fi
 
 # all
 if [ ! -z $DO_ALL ]
 then
-   echo '...'
+# If I wanted to get smart, I would put a date stamp at the top of this thing,
+# telling me when I ought to rebuild or not.
+
+# Regen doc.
+while read line
+do
+	# Save this b/c it's our folder name for different lib functions.
+	if [[ ${line:0:1} == '#' ]] || [[ -z "${line}" ]]
+	then
+		continue
+
+	# Proc
+	else
+		FNAME="$(echo $line | awk -F ':' '{print $1}' )"
+		LIB_FILE="$(echo $line | awk -F ':' '{print $2}' )"
+		FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
+
+		# Did the user ask that this be excluded?
+		[ ! -z $EXCLUDE_THESE ] && [[ $(is_element_present_in 'EXCLUDE_THESE' $FNAME) == 'true' ]] && continue 
+
+		# If the file doesn't exist, don't compile it.
+		if [ -f "$LIB_FILE" ] 
+		then 
+			sed -n 2,${FL}p $LIB_FILE #| sed ${FL}'s/$/ssdfdfs/'
+			printf "\n"
+		fi
+	fi
+done < $LOOKUP_MANIFEST
+	
 fi
+
+# rebuild 
+if [ ! -z $DO_REBUILD ]
+then
+while read line
+do
+	# Save this b/c it's our folder name for different lib functions.
+	if [[ ${line:0:1} == '#' ]] 
+	then
+		DIRNAME="$(echo $line | sed 's/# //' | tr [A-Z] [a-z] )"
+		[ ! -d "$DIRNAME" ] && mkdir -p $DIRNAME
+		continue
+
+	# Move through blanks.
+	elif [[ -z "${line}" ]]
+	then
+		continue	
+
+	# You have hit gold...
+	else
+		FNAME="$(echo $line | awk -F ':' '{print $1}' )"
+		FDESC="$(echo $line | awk -F ': ' '{print $2}' )"
+		FILE_REF="$DIRNAME/$FNAME.sh"
+
+		# If the file doesn't exist, create it.
+		if [ ! -f "$FILE_REF" ] 
+		then
+			$BUILD_OPTS --name $FNAME --summary "$FDESC" > "$FILE_REF"
+			
+		# If it does, just modify it. 
+		# (The description that is...)
+		else
+			# Message
+			[ ! -z $VERBOSE ] && echo "Recreating $FILE_REF"
+
+			# Iterate through file finding last line with '#'.
+			FO=
+			COUNTER=1
+			LIM=$(wc -l $FILE_REF | awk '{print $1}')
+			while read char
+			do
+				if [[ ! ${char:0:1} == '#' ]]
+				then 
+					FO=$COUNTER 
+					break
+				fi
+				COUNTER=$(( $COUNTER + 1 ))
+			done < "$FILE_REF"
+			unset COUNTER
+
+			# Regenerate.
+			if [ ! -z $FO ]
+			then
+				BUFFER=$(sed -n ${FO},${LIM}p < "$FILE_REF")
+				$BUILD_OPTS --name $FNAME --summary "$FDESC" > "$FILE_REF"
+				printf "$BUFFER" >> $FILE_REF
+		#		echo $BUFFER >> "$FILE_REF"
+
+			# Generate again with new documentation.
+			else
+				$BUILD_OPTS --name $FNAME --summary "$FDESC" > "$FILE_REF"
+			fi
+		fi
+
+		# Also create a lookup table easily grepped with sed.
+		printf "${FNAME}:${DIRNAME}/${FNAME}.sh\n" >> $LOOKUP_MANIFEST
+	fi
+done < $LIB_MANIFEST
+fi
+
+
+# Where are your tests?
+# $(build -d -x convert | grep convert) should always return null 

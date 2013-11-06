@@ -28,10 +28,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #-----------------------------------------------------#
+BINDIR="$(dirname "$(readlink -f $0)")"
+SELF="$(readlink -f $0)"
+LIB="${BINDIR}/lib.complete"
+source $LIB
 PROGRAM="buildopts"
 DELIM=","
 JOIN="="
 
+
+# usage message
+# Show a usage message and die.
 usage() {
 	STATUS=${1:-0}
 	echo "
@@ -58,51 +65,15 @@ Shell Script tuning:
 -m | --from-manifest        Generate through the use of a manifest file.
 -b | --binref               Include references to script file and directory 
                             that script resides in.
+-y | --libref               Include references to library 
+-a | --all <arg>            Set all flags that don't require an argument.
+                            <arg> is the name of the script.
 
 General Options:
 -v | --verbose              Be verbose in output.
 -h | --help                 Show help and quit.
 "
 	exit $STATUS
-}
-
-# break-list - creates an array based on some set of delimiters.
-break_list_by_delim() {
-	mylist=(`printf $1 | sed "s/${DELIM}/ /g"`)
-	echo ${mylist[@]}		# Return the list all ghetto-style.
-}
-
-# break-maps - gives a map based on a set of delimiters.
-break_maps_by_delim() {
-	join="${2-=}"			# Allow for an alternate map marker.
-	local m=(`printf $1 | sed "s/${join}/ /g"`)
-	echo ${m[@]}			# Return the list all ghetto-style.
-}
-
-# is_element_present_in() - Check if $2 is found within array $1
-is_element_present_in() {
-	# Catch arguments.
-	if [ -z "$1" ] || [ -z "$2" ]
-	then
-		echo "Improper arguments supplied to is_element_present_in()"
-		echo "You've made an error in coding!"
-		exit 1
-	fi
-
-	# Catch arguments.
-	ARR="$(eval 'echo ${'$1'[@]}')"
-	VS_ELE="$2"
-	STAT=
-
-	# Compare each element.
-	for ELE in ${ARR[@]}
-	do
-		[ $ELE == $VS_ELE ] && STAT="true" && break 
-	done
-
-	# Return a status.
-	[ -z $STAT ] && STAT="false"
-	echo $STAT
 }
 
 
@@ -181,8 +152,28 @@ get_last_alpha () {
 while [ $# -gt 0 ]
 do
 	case "$1" in 
-		-b|--bindir)
+		-a|--all)
+			PROC_ALL=true
 			DO_SELFSOURCE=true
+			DO_LIBSOURCE=true
+			DO_PROGRAM=true
+			SHOW_USAGE=true
+			DO_COMMENTS=true
+			DO_DIENARG=true
+			SELECT_LICENSE=true
+			DO_LOGIC=true
+			DO_OPTIONS=true
+			shift
+			NAME="$1"
+		;;
+
+		-b|--binref)
+			DO_SELFSOURCE=true
+		;;
+
+		-y|--libref)
+			shift
+			LIBREF="$1"
 		;;
 
 		-s|--summary)
@@ -289,6 +280,15 @@ then
 fi
 
 
+# --all must have a list via --from.
+if [ ! -z $PROC_ALL ] && [ -z "$FROM" ]
+then
+	echo "No list supplied via --from!"
+	echo "Can't create options or usage menu without at least one argument here."
+	usage 1
+fi
+
+
 # Generate a file.
 FILENAME=${FILENAME:-'/dev/stdout'}
 FILEERR=${FILENAME:-'/dev/stderr'}
@@ -377,18 +377,23 @@ LICENSE_BODY="
 	printf "$LICENSE_BODY" >> $FILENAME
 fi
 
+# Use $PROGRAM variable.
+[ ! -z $DO_PROGRAM ] && printf "PROGRAM=\"${NAME}\"\n" >> $FILENAME
+
 
 # Include a reference to self and the program's directory.
-if [ ! -z $DO_SELFSOURCE ] 
+if [ ! -z $DO_SELFSOURCE ] || [ ! -z "$LIBREF" ]
 then
 	[ ! -z $DO_COMMENTS ] && printf '\n# References to $SELF\n' >> $FILENAME
 	( printf 'BINDIR="$(dirname "$(readlink -f $0)")"\n'
 	printf 'SELF="$(readlink -f $0)"\n' ) >> $FILENAME
+
+	if [ ! -z "$LIBREF" ] 
+	then 
+		[ ! -z $DO_COMMENTS ] && printf '\n# Reference a central library\n' >> $FILENAME
+		printf "LIB=\"\${BINDIR}/${LIBREF}\"\nsource \$LIB\n" >> $FILENAME
+	fi
 fi
-
-
-# Use $PROGRAM variable.
-[ ! -z $DO_PROGRAM ] && printf "PROGRAM=\"${NAME}\"\n" >> $FILENAME
 
 
 # Need the ability to choose between action flags and logic / arugment flags.
@@ -491,9 +496,9 @@ then
 		fi
 	done
 
-	printf -- '-v|--verbose                 ' | head -c 30 >> $FILENAME 
+	printf -- '-v | --verbose                 ' | head -c 30 >> $FILENAME 
 	printf ' Be verbose in output.\n' >> $FILENAME
-	printf -- '-h|--help                    ' | head -c 30 >> $FILENAME
+	printf -- '-h | --help                    ' | head -c 30 >> $FILENAME
 	( printf ' Show this help and quit.\n"\n' 
 	printf '   exit $STATUS\n'
 	printf '}\n\n' ) >> $FILENAME
@@ -570,9 +575,9 @@ then
 
 
 	# End the arguments.
- ( printf '      -v|--verbose)\n        VERBOSE=true\n      ;;\n' 
-   printf '      -h|--help)\n        usage 0\n      ;;\n' 
- 	printf '      -*)\n   ' 
+ ( printf '     -v|--verbose)\n        VERBOSE=true\n      ;;\n' 
+   printf '     -h|--help)\n        usage 0\n      ;;\n' 
+ 	printf '     -*)\n   ' 
 	printf '   printf \"Bad argument.\\n\";\n      exit 1\n     ;;\n'
 	printf '      *) break;;\n'
 	printf '   esac\nshift\n'	

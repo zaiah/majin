@@ -28,9 +28,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #-----------------------------------------------------#
+BINDIR="$(dirname "$(readlink -f $0)")"
+SELF="$(readlink -f $0)"
+LIB="${BINDIR}/lib.complete"
+source $LIB
 PROGRAM="buildsql"
 DELIM=","
 JOIN="="
+
 
 # usage message
 # Show a usage message and die.

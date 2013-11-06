@@ -77,6 +77,6 @@ do
 		# Make sure that your columnns are wrapping correctly.
 
 		# This is debugging mostly...
-		printf "${FNAME}:${DIRNAME}/${FNAME}.sh\n" >> $PRG_MANIFEST
+		# printf "${FNAME}:${DIRNAME}/${FNAME}.sh\n" >> $PRG_MANIFEST
 	fi
 done < gen.manifest

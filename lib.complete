@@ -1,0 +1,496 @@
+#-----------------------------------------------------#
+# break_list_by_delim
+#
+# Creates an array based on a string containing delimiters.
+#-----------------------------------------------------#
+# break-list - creates an array based on some set of delimiters.
+break_list_by_delim() {
+	mylist=(`printf $1 | sed "s/${DELIM}/ /g"`)
+	echo ${mylist[@]}		# Return the list all ghetto-style.
+}
+
+#-----------------------------------------------------#
+# break_maps_by_delim
+#
+# Creates a key to value pair based on a string containing delimiters.
+#-----------------------------------------------------#
+break_maps_by_delim() {
+	join="${2-=}"			# Allow for an alternate map marker.
+	local m=(`printf $1 | sed "s/${join}/ /g"`)
+	echo ${m[@]}			# Return the list all ghetto-style.
+}
+
+
+#-----------------------------------------------------#
+# load_from_db_columns
+#
+# Create a variable in Bash out of each column header in a table and fill it with information found in that column.
+#-----------------------------------------------------#
+load_from_db_columns() {
+	# Die if no table name.
+	TABLE="$1"
+
+	if [ -z "$TABLE" ]
+	then
+		echo "In function: load_from_db_columns()"
+		echo "\tNo table name supplied, You've made an error in coding."
+		exit 1
+	else
+		# Use Some namespace...
+		# LFDB
+		TMP="/tmp"
+		TMPFILE=$TMP/__lfdb.sql
+		[ -e $TMPFILE ] && rm $TMPFILE
+		touch $TMPFILE
+
+		# Choose a table and this function should: 
+		# Get column titles and create variable names.
+		printf ".headers ON\nSELECT * FROM ${TABLE};\n" >> $TMPFILE
+
+		LFDB_HEADERS=( $( $__SQLITE $DB < $TMPFILE | \
+			head -n 1 | \
+			sed 's/id|//' | \
+			tr '|' ',' ) )
+
+		LFDB_VARS=( $( $__SQLITE $DB < $TMPFILE | \
+			head -n 1 | \
+			sed 's/id|//' | \
+			tr '|' ' ' | \
+			tr [a-z] [A-Z] ) )
+
+		# It may be more intelligent to go line by line for this...
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+		# Get whatever settings we've asked for.
+		printf "SELECT ${LFDB_HEADERS[@]} FROM ${TABLE};\n" >> $TMPFILE
+		LFDB_RES=$( $__SQLITE $DB < $TMPFILE | tail -n 1 )
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+		# Output a list of variables to temporary file.
+		# This code needs to be introduced to our application somehow
+		# eval is one choice
+		# Files and source are another... (but not reliable if deleted) 
+		TMPFILE=$TMP/__var.sh
+		COUNTER=0
+		for XX in ${LFDB_VARS[@]}
+		do
+			( printf "DEFAULT_${XX}='"
+			echo $LFDB_RES | \
+				awk -F '|' "{ print \$$(( $COUNTER + 1 )) }" | \
+				sed "s/$/'/"
+			printf "${XX}="
+			printf '${'
+			printf "$XX"
+			printf ':-${DEFAULT_'
+			printf "$XX"
+			printf '}}\n' ) >> $TMPFILE
+			COUNTER=$(( $COUNTER + 1 ))
+		done
+
+		# Load these within the program.
+		#cat $TMPFILE
+		source $TMPFILE
+		[ -e $TMPFILE ] && rm $TMPFILE
+	fi
+}
+
+#-----------------------------------------------------#
+# modify_from_db_columns
+#
+# Load data from database and edit from a temporary file, writing back the results.
+#-----------------------------------------------------#
+modify_from_db_columns() {
+	# Catch input.
+	TABLE="$1"
+
+	# Die if no table name.
+	if [ -z "$TABLE" ]
+	then
+		echo "In function: load_from_db_columns()"
+		echo "\tNo table name supplied, You've made an error in coding."
+		exit 1
+
+	else
+		# Use Some namespace...
+		# LFDB
+		TMP="/tmp"
+		TMPFILE=$TMP/__lfdb.sql
+		[ -e $TMPFILE ] && rm $TMPFILE
+		touch $TMPFILE
+
+		# Choose a table and this function should: 
+		# Get column titles and create variable names.
+		if [ ! -z "$CLAUSE" ]
+		then
+#			printf ".headers ON\nSELECT * FROM ${TABLE} $CLAUSE;\n" >> $TMPFILE
+			printf ".headers ON\nSELECT * FROM ${TABLE} $CLAUSE;\n" 
+		else
+			printf ".headers ON\nSELECT * FROM ${TABLE};\n" >> $TMPFILE
+		fi
+			exit
+		LFDB_HEADERS=( $( $__SQLITE $DB < $TMPFILE | \
+			head -n 1 | \
+			tr '|' ',' ) )
+
+		LFDB_VARS=( $( $__SQLITE $DB < $TMPFILE | \
+			head -n 1 | \
+			tr '|' ' ' | \
+			tr [a-z] [A-Z] ) )
+
+		LFDB_ID=$( $__SQLITE $DB < $TMPFILE | \
+			tail -n 1 | \
+			awk -F '|' '{ print $1 }')
+
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+
+		# Get all items.
+		printf "SELECT ${LFDB_HEADERS[@]} FROM ${TABLE};\n" >> $TMPFILE
+		LFDB_RES=$( $__SQLITE $DB < $TMPFILE | tail -n 1 )
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+
+		# Need a few traps to get rid of these files if things go wrong.
+
+
+		# Output database values as variables within temporary file.
+		TMPFILE=$TMP/__dbvar.sh
+		COUNTER=0
+		for XX in ${LFDB_VARS[@]}
+		do
+			if [[ ! $XX == 'ID' ]]
+			then
+				# Needs some basic string / number checking
+				( printf "${XX}='"
+				echo $LFDB_RES | \
+					awk -F '|' "{ print \$$(( $COUNTER + 1 )) }" | \
+					sed "s/$/'/"
+				#printf $LFDB_RES | awk -F '|' "{ print \$$(( $COUNTER + 1 )) }"
+				) >> $TMPFILE
+			fi
+			COUNTER=$(( $COUNTER + 1 ))
+		done
+
+
+		# Load these within the program.
+		MODIFY=true
+		[ ! -z $MODIFY ] && $EDITOR $TMPFILE
+		source $TMPFILE
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+
+		# Check through the list and see what's changed.
+		# Output database values as variables within temporary file.
+		TMPFILE=$TMP/__cmp.sh
+		COUNTER=0
+		for XX in ${LFDB_VARS[@]}
+		do
+			if [[ ! $XX == 'ID' ]]
+			then
+				# Needs some basic string / number checking
+				( printf "ORIG_${XX}='"
+				echo $LFDB_RES | \
+					awk -F '|' "{ print \$$(( $COUNTER + 1 )) }" | \
+					sed "s/$/'/"
+				#printf $LFDB_RES | awk -F '|' "{ print \$$(( $COUNTER + 1 )) }"
+				) >> $TMPFILE
+			fi
+			COUNTER=$(( $COUNTER + 1 ))
+		done
+		source $TMPFILE
+		[ -e $TMPFILE ] && rm $TMPFILE
+
+
+		# Load stuff.
+		TMPFILE=$TMP/__load.sh
+		COUNTER=0
+		printf "SQL_LOADSTRING=\"UPDATE $TABLE SET " >> $TMPFILE
+		for XX in ${LFDB_VARS[@]}
+		do
+			if [[ ! $XX == 'ID' ]]
+			then
+				# Variables...
+				USER="${!XX}"
+				VAR_NAME="ORIG_$XX"
+				ORIG="${!VAR_NAME}"
+				COLUMN_NAME="$(echo ${XX} | tr [A-Z] [a-z])"
+
+				# Check values and make sure they haven't changed.
+				FV=
+				if [[ "$USER" == "$ORIG" ]]
+				then
+					FV=$ORIG
+				else
+					FV=$USER
+				fi
+
+				# Evaluate with that neat little typechecking function.
+				VAR_TYPE=$(typecheck $USER)
+				printf "$COLUMN_NAME = "  >> $TMPFILE
+				[[ $VAR_TYPE == "null" ]] && printf "''" >> $TMPFILE
+				[[ $VAR_TYPE == "string" ]] && printf "'$FV'" >> $TMPFILE
+				[[ $VAR_TYPE == "integer" ]] && printf "$FV" >> $TMPFILE
+
+				# Wrap final clause in the statement.
+				if [ $COUNTER == $(( ${#LFDB_VARS[@]} - 1 )) ] 
+				then
+					( printf '\n' 
+					printf "WHERE id = $LFDB_ID;\"\n" ) >> $TMPFILE
+				else
+					printf ',\n' >> $TMPFILE
+				fi	
+			fi
+			COUNTER=$(( $COUNTER + 1 ))
+		done
+		unset COUNTER
+
+		# Load the new stuff.
+		source $TMPFILE
+		[ -e $TMPFILE ] && rm $TMPFILE
+		
+		# Only write if they've changed?
+		# (You'll need the id of whatever is being modified as well...)
+
+		# Do the write.
+		#echo $SQL_LOADSTRING
+		$__SQLITE $DB "$SQL_LOADSTRING"
+
+		#vi -O $TMP/__{cmp,dbvar}.sh
+		# Write stuff to database 
+		[ -e $TMPFILE ] && rm $TMPFILE
+	fi
+
+	unset CLAUSE
+}
+
+#-----------------------------------------------------#
+# convert
+#
+# Prepares records to be placed into a SQLite 3 database.
+#-----------------------------------------------------#
+convert() {
+	# Is this null?
+	if [ -z $1 ]
+	then
+		printf "''"
+
+	# Is this an integer?
+	else
+		# Send error nowhere.
+		STAT=$(echo $(( $1 )) 2>/dev/null | echo $? )
+
+		# Still should probably catch strings.
+		if [ ! $STAT == 0 ]
+		then
+			printf "'$1'"
+		else
+			# Is string 
+			printf $1 
+		fi
+	fi
+}
+
+#-----------------------------------------------------#
+# typecheck
+#
+# Performs a typecheck on $1
+#-----------------------------------------------------#
+
+#-----------------------------------------------------#
+# randomize
+#
+# Returns a string $1 with its characters in random order.
+#-----------------------------------------------------#
+randomize() {
+	# ...
+	WORD="0123456789abcdefghijklmnopqrstuvwxyz"
+
+	# ...
+	LETTERS=( $(echo $1 | \
+		tr -s ' ' '_' | \
+		sed 's/\(.\)/\1 /g') )
+
+	declare -a NEW_LETTERS
+	STRING=""
+	RANGE=${#LETTERS[@]}
+	C=0	
+	for E in ${LETTERS[@]}
+	do
+		if [ ! -z $NUM ]
+		then
+			OLDNUM=$NUM
+		else
+			NUM=$RANDOM
+			let "NUM %= $RANGE"
+			OLDNUM=-1
+		fi
+
+		while [ $NUM -ge $RANGE ] || [ $NUM -eq $OLDNUM ] 
+		do
+			NUM=$RANDOM
+			let "NUM %= $RANGE"
+		done
+		STRING=${STRING}${LETTERS[$NUM]}
+	done
+
+	echo $STRING
+}
+
+#-----------------------------------------------------#
+# randomize_to
+#
+# Returns a string with characters in random order with length $1.
+#-----------------------------------------------------#
+randomize_to() {
+	# ...
+	WORD="0123456789abcdefghijklmnopqrstuvwxyz"
+
+	# ...
+	LETTERS=( $(echo $1 | \
+		tr -s ' ' '_' | \
+		sed 's/\(.\)/\1 /g') )
+
+	declare -a NEW_LETTERS
+	STRING=""
+	RANGE=${#LETTERS[@]}
+	C=0	
+	for E in ${LETTERS[@]}
+	do
+		if [ ! -z $NUM ]
+		then
+			OLDNUM=$NUM
+		else
+			NUM=$RANDOM
+			let "NUM %= $RANGE"
+			OLDNUM=-1
+		fi
+
+		while [ $NUM -ge $RANGE ] || [ $NUM -eq $OLDNUM ] 
+		do
+			NUM=$RANDOM
+			let "NUM %= $RANGE"
+		done
+		STRING=${STRING}${LETTERS[$NUM]}
+	done
+
+	echo $STRING
+}
+
+#-----------------------------------------------------#
+# is_element_present_in
+#
+# Return true or false if an element is found in an array.
+#-----------------------------------------------------#
+is_element_present_in() {
+	# Catch arguments.
+	if [ -z "$1" ] || [ -z "$2" ]
+	then
+		echo "Improper arguments supplied to is_element_present_in()"
+		echo "You've made an error in coding!"
+		exit 1
+	fi
+
+	# Catch arguments.
+	ARR="$(eval 'echo ${'$1'[@]}')"
+	VS_ELE="$2"
+	STAT=
+
+	# Compare each element.
+	for ELE in ${ARR[@]}
+	do
+		[ $ELE == $VS_ELE ] && STAT="true" && break 
+	done
+
+	# Return a status.
+	[ -z $STAT ] && STAT="false"
+	echo $STAT
+}
+
+#-----------------------------------------------------#
+# eval_flags
+#
+# Expands flags for commonly used programs based on verbosity settings.
+#-----------------------------------------------------#
+eval_flags() {
+if [ ! -z $VERBOSE ]
+then
+	MV_FLAGS="-v"
+	LN_FLAGS="-sv"
+	MKDIR_FLAGS="-pv"
+	GZCREATE_FLAGS="czvf"
+	BZ2CREATE_FLAGS="cjvf"
+	UNGZ_FLAGS="xzvf"
+	UNBZ2_FLAGS="xjvf"
+	SCP_FLAGS="-v"
+	RM_FLAGS="-rfv"
+else
+	MV_FLAGS=
+	LN_FLAGS="-s"
+	MKDIR_FLAGS="-p"
+	GZCREATE_FLAGS="czf"
+	BZ2CREATE_FLAGS="cjf"
+	UNGZ_FLAGS="xzf"
+	UNBZ2_FLAGS="xjf"
+	SCP_FLAGS=
+	RM_FLAGS="-rf"
+fi
+}
+
+#-----------------------------------------------------#
+# die_on_improper_type
+#
+# Exits script if an argument of wrong type is received.
+#-----------------------------------------------------#
+
+#-----------------------------------------------------#
+# is_flag
+#
+# Return status if $1 is a flag or not
+#-----------------------------------------------------#
+function is_flag() {
+	echo 'bla'
+	echo 'bla'
+	echo 'bla'
+}
+
+#-----------------------------------------------------#
+# edit_in_place
+#
+# Opens a temporary file with variables within an editor.
+#-----------------------------------------------------#
+edit_in_place() {
+	# Can use a timestamp...
+	TMP="__file_`date +%s`__"
+
+	# Edit and drop.
+	echo $TMP
+
+	# Loading the buffer after editing is smart.
+}
+
+#-----------------------------------------------------#
+# read_xz
+#
+# Read a compressed file to stdout as long as it's gz, bz2 or 7z.
+#-----------------------------------------------------#
+read_xz() {
+	local FILE=
+	FILE=$1
+
+	if [ -f "$FILE" ]
+	then
+		# Find shortest matching extension.
+		case "${FILE##.*}" in
+			gz)
+				gzip -dc $FILE
+				;;
+			bz2)
+
+				;;
+			7z)
+
+				;;
+		esac
+	fi
+}
+

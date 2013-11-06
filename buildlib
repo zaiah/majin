@@ -1,0 +1,262 @@
+#!/bin/bash -
+#-----------------------------------------------------#
+# buildlib
+#
+# Builds a portable library for shell script programs.
+#-----------------------------------------------------#
+#-----------------------------------------------------#
+# Licensing
+# ---------
+# 
+# Copyright (c) 2013 Vokayent
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-----------------------------------------------------#
+BINDIR="$(dirname "$(readlink -f $0)")"
+SELF="$(readlink -f $0)"
+LIB="${BINDIR}/lib.complete"
+source $LIB
+PROGRAM="buildlib"
+DELIM=","
+JOIN="="
+
+
+# usage() - Show usage message and die with $STATUS
+usage() {
+   STATUS="${1:-0}"
+   echo "Usage: ./${PROGRAM}
+	[ -  ]
+
+Library Compile Actions:
+-w | --with <arg>             Build library with functions listed in <arg> 
+-x | --without <arg>          Build library with functions listed in <arg> 
+-z | --all                    Build library with functions listed in <arg> 
+-n | --namespace <arg>        Build library functions with a different 
+                              naming convention.
+-c | --comments               Include comments in library. (default includes comments :) )
+-l | --list                   List all available functions. 
+-? | --describe <arg>         Describe function <arg>.
+--specify-with                Use a menu to choose library list.
+
+Library Macro Flags: 
+-d | --databases              Concatenate only database functions into a library.
+-g | --arguments              Concatenate only argument functions into a library.
+-r | --random                 Concatenate only functions dealing with randomness into a library.
+-s | --strings                Concatenate only string functions into a library.
+-i | --integers               Concatenate only integer functions into a library.
+-m | --math                   Concatenate only math functions into a library.
+-a | --arrays                 Concatenate only array functions into a library. 
+--from-groups <arg>           Build library with functions in group <arg>.
+                              (Alternate syntax is supported) 
+
+Library Runtime Actions:
+-e | --executables <arg>      Convert names in <arg> to variables that alias
+                              programs located in your \$PATH
+-s | --static <arg>           Convert names in <arg> to variables pointing to 
+                              immutable values. 
+-d | --depcheck               Generate code to run a dependency check.
+-s | --standard_dirs <arg>    Convert names in <arg> to variables that 
+                              reference your program's common directories.
+-b | --db                     Generate code to create a database. 
+-t | --initial-run            Generate code to install a shell script.
+-u | --security               Generate code to secure a shell script.
+
+General Options:
+-v | --verbose                Be verbose in output.
+-h | --help                   Show this help and quit.
+"
+   exit $STATUS
+}
+
+
+# Die if no arguments received.
+[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
+# Process options.
+while [ $# -gt 0 ]
+do
+   case "$1" in
+     -g|--from-groups)
+         DO_GROUPS=true
+         shift
+         WITH_GROUPS="$1"
+      ;;
+     -w|--with)
+         DO_WITH=true
+         shift
+         WITH="$1"
+      ;;
+     -l|--list)
+         DO_LIST=true
+         shift
+         LIST="$1"
+      ;;
+     -n|--namespace)
+         DO_NAMESPACE=true
+         shift
+         NAMESPACE="$1"
+      ;;
+     -s|--specify-with)
+         DO_SPECIFY_WITH=true
+      ;;
+     -?|--describe)
+         DO_DESCRIBE=true
+         shift
+         DESCRIBE="$1"
+      ;;
+     -e|--executables)
+         DO_EXECUTABLES=true
+         shift
+         EXECUTABLES="$1"
+      ;;
+     -s|--static)
+         DO_STATIC=true
+         shift
+         STATIC="$1"
+      ;;
+     -d|--depcheck)
+         DO_DEPCHECK=true
+      ;;
+     -s|--standard_dirs)
+         DO_STANDARD_DIRS=true
+         shift
+         STANDARD_DIRS="$1"
+      ;;
+     -d|--db)
+         DO_DB=true
+      ;;
+     -i|--initial-run)
+         DO_INITIAL_RUN=true
+      ;;
+     -s|--security)
+         DO_SECURITY=true
+      ;;
+      -v|--verbose)
+        VERBOSE=true
+      ;;
+      -h|--help)
+        usage 0
+      ;;
+      -*)
+      printf "Bad argument.\n";
+      exit 1
+     ;;
+      *) break;;
+   esac
+shift
+done
+
+
+# Other common stuff
+LIB_MANIFEST="lib/gen.manifest"
+LOOKUP_MANIFEST="lib/gen.manifest"
+
+
+# with
+if [ ! -z $DO_WITH ]
+then
+   # For each in the with list, cat.
+	
+
+	# If you want comments, better say so.
+fi
+
+# list
+if [ ! -z $DO_LIST ]
+then
+	# Regen doc.
+	while read line
+	do
+		# Save this b/c it's our folder name for different lib functions.
+		if [[ ${line:0:1} == '#' ]] 
+		then
+			printf "\nIn $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:\n"
+			continue
+
+		# Move through blanks.
+		elif [[ -z "${line}" ]]
+		then
+			continue	
+
+		# You have hit gold...
+		else
+			printf "  $line" | \
+				sed 's/\r//' | \
+				awk -F ':' '{print $1 ":          "}' | \
+				head -c 25 
+			printf "$line" | awk -F ':' '{print $2}' 
+		fi
+	done < $LIB_MANIFEST
+fi
+
+
+# Describe one thing at a time.
+if [ ! -z $DO_DESCRIBE ]
+then
+	[ -z "$DESCRIBE" ] && echo "No description supplied!" && usage 1
+	grep "$DESCRIBE" $LIB_MANIFEST
+fi
+
+# specify_with
+if [ ! -z $DO_SPECIFY_WITH ]
+then
+   echo '...'
+fi
+
+# executables
+if [ ! -z $DO_EXECUTABLES ]
+then
+   echo '...'
+fi
+
+# depcheck
+if [ ! -z $DO_DEPCHECK ]
+then
+   echo '...'
+fi
+
+# db
+if [ ! -z $DO_DB ]
+then
+   echo '...'
+fi
+
+# initial_run
+if [ ! -z $DO_INITIAL_RUN ]
+then
+   echo '...'
+fi
+
+# security
+if [ ! -z $DO_SECURITY ]
+then
+   # Set the right internal field seperator for command line args. 
+	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args." >> $FILENAME
+	printf "IFS=' \n\t'"  >> $FILENAME
+
+	# Limits file creation permissions. 
+	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions." >> $FILENAME
+	( printf "UMASK=002" 
+	printf 'umask $UMASK' ) >> $FILENAME
+
+	# Set a normal path. 
+	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path." >> $FILENAME
+	( printf 'PATH="/usr/local/bin:/bin:/usr/bin"' 
+	printf 'export PATH' ) >> $FILENAME
+fi
