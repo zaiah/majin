@@ -37,15 +37,15 @@ usage() {
 	[ -  ]
 
 -d | --databases              desc
--a | --arguments              desc
+-g | --arguments              desc
 -r | --random                 desc
 -s | --strings                desc
 -i | --integers               desc
 -m | --math                   desc
 -a | --arrays                 desc
--a | --all                    desc
--v|--verbose                  Be verbose in output.
--h|--help                     Show this help and quit.
+-x | --all                    desc
+-v | --verbose                Be verbose in output.
+-h | --help                   Show this help and quit.
 "
    exit $STATUS
 }
@@ -61,7 +61,7 @@ do
      -d|--databases)
          DO_DATABASES=true
       ;;
-     -a|--arguments)
+     -g|--arguments)
          DO_ARGUMENTS=true
       ;;
      -r|--random)
@@ -79,7 +79,7 @@ do
      -a|--arrays)
          DO_ARRAYS=true
       ;;
-     -a|--all)
+     -x|--all)
          DO_ALL=true
       ;;
       -v|--verbose)
