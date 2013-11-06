@@ -86,6 +86,11 @@ do
      -s|--specify-with)
          DO_SPECIFY_WITH=true
       ;;
+     -?|--describe)
+         DO_DESCRIBE=true
+         shift
+         DESCRIBE="$1"
+      ;;
      -e|--executables)
          DO_EXECUTABLES=true
          shift
@@ -149,7 +154,7 @@ then
 		# Save this b/c it's our folder name for different lib functions.
 		if [[ ${line:0:1} == '#' ]] 
 		then
-			echo "In $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:"
+			printf "\nIn $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:\n"
 			continue
 
 		# Move through blanks.
@@ -159,7 +164,11 @@ then
 
 		# You have hit gold...
 		else
-			printf "$line" | awk -F ':' '{print $1 " -" $2}' 
+			printf "  $line" | \
+				sed 's/\r//' | \
+				awk -F ':' '{print $1 ":          "}' | \
+				head -c 25 
+			printf "$line" | awk -F ':' '{print $2}' 
 		fi
 	done < $LIB_MANIFEST
 fi
@@ -168,7 +177,8 @@ fi
 # Describe one thing at a time.
 if [ ! -z $DO_DESCRIBE ]
 then
-	echo '...'
+	[ -z "$DESCRIBE" ] && echo "No description supplied!" && usage 1
+	grep "$DESCRIBE" $LIB_MANIFEST
 fi
 
 # specify_with
@@ -204,5 +214,17 @@ fi
 # security
 if [ ! -z $DO_SECURITY ]
 then
-   echo '...'
+   # Set the right internal field seperator for command line args. 
+	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args." >> $FILENAME
+	printf "IFS=' \n\t'"  >> $FILENAME
+
+	# Limits file creation permissions. 
+	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions." >> $FILENAME
+	( printf "UMASK=002" 
+	printf 'umask $UMASK' ) >> $FILENAME
+
+	# Set a normal path. 
+	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path." >> $FILENAME
+	( printf 'PATH="/usr/local/bin:/bin:/usr/bin"' 
+	printf 'export PATH' ) >> $FILENAME
 fi

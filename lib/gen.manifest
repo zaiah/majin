@@ -10,6 +10,8 @@ modify_from_db_columns: Load data from database and edit from a temporary file, 
 
 convert: Prepares records to be placed into a SQLite 3 database.
 
+where: Create a clause.
+
 # Math 
 
 # Random 
