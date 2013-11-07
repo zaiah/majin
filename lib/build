@@ -128,7 +128,8 @@ eval_flags
 
 
 # Chop up my excludes early.
-[ ! -z "$EXCLUDE_THESE" ] && EXCLUDE_THESE="$(break_list_by_delim "$EXCLUDE_THESE")"
+[ ! -z "$EXCLUDE_THESE" ] && \
+	EXCLUDE_THESE="$(break_list_by_delim "$EXCLUDE_THESE")"
 
 
 # I can save many lines with this...

@@ -35,8 +35,9 @@ source $LIB
 PROGRAM="buildlib"
 
 # Manifests 
-LIB_MANIFEST="lib/gen.manifest"
-LOOKUP_MANIFEST="lib/lookup.manifest"
+SRCLIB="${BINDIR}/lib"
+LIB_MANIFEST="${SRCLIB}/gen.manifest"
+LOOKUP_MANIFEST="${SRCLIB}/lookup.manifest"
 
 # Filenames
 FILENAME="/dev/stdout"
@@ -55,24 +56,16 @@ usage() {
 Library Compile Actions:
 -w | --with <arg>             Build library with functions listed in <arg> 
 -x | --without <arg>          Build library with functions listed in <arg> 
--z | --all                    Build library with functions listed in <arg> 
--n | --namespace <arg>        Build library functions with a different 
+-z | --all-libs               Build library with functions listed in <arg> 
+-n | --name <arg>             Give the library and its elements a consistent 
+                              name.
+-q | --namespace <arg>        Build library functions with a different 
                               naming convention.
 -c | --comments               Include comments in library. (default includes comments :) )
 -l | --list                   List all available functions. 
 -? | --describe <arg>         Describe function <arg>.
 --specify-with                Use a menu to choose library list.
 
-Library Macro Flags: 
--d | --databases              Concatenate only database functions into a library.
--g | --arguments              Concatenate only argument functions into a library.
--r | --random                 Concatenate only functions dealing with randomness into a library.
--s | --strings                Concatenate only string functions into a library.
--i | --integers               Concatenate only integer functions into a library.
--m | --math                   Concatenate only math functions into a library.
--a | --arrays                 Concatenate only array functions into a library. 
---from-groups <arg>           Build library with functions in group <arg>.
-                              (Alternate syntax is supported) 
 
 Library Runtime Actions:
 -e | --executables <arg>      Convert names in <arg> to variables that alias
@@ -85,6 +78,18 @@ Library Runtime Actions:
 -b | --db                     Generate code to create a database. 
 -t | --initial-run            Generate code to install a shell script.
 -u | --security               Generate code to secure a shell script.
+-a | --set-all <arg>          Set all flags that do not require an argument.
+                              <arg> refers to library name.
+
+
+Library Macro Flags: 
+--databases                   Concatenate only database functions into library.
+--arguments                   Concatenate only argument functions into library.
+--random                      Concatenate only functions dealing with randomness into a library.
+--strings                     Concatenate only string functions into library.
+--integers                    Concatenate only integer functions into library.
+--math                        Concatenate only math functions into library.
+--arrays                      Concatenate only array functions into library. 
 
 General Options:
 -v | --verbose                Be verbose in output.
@@ -101,6 +106,16 @@ General Options:
 while [ $# -gt 0 ]
 do
    case "$1" in
+		# ...
+	  -a|--set-all)
+			SET_ALL=true
+			DO_COMMENTS=true
+         DO_DB=true
+         DO_INITIAL_RUN=true
+         DO_SECURITY=true
+			shift
+			LIBNAME="$1"
+		;;
 	  -c|--comments)
 			DO_COMMENTS=true
 		;;
@@ -109,12 +124,23 @@ do
          shift
          WITH="$1"
       ;;
+     -x|--without)
+         shift
+         WITHOUT="$1"
+      ;;
+     -z|--all)
+         DO_INC_ALL=true
+      ;;
      -l|--list)
          DO_LIST=true
          shift
          LIST="$1"
       ;;
-     -n|--namespace)
+     -n|--name)
+         shift
+         LIBNAME="$1"
+      ;;
+     -q|--namespace)
          DO_NAMESPACE=true
          shift
          NAMESPACE="$1"
@@ -155,6 +181,31 @@ do
          shift
          DESCRIBE="$1"
       ;;
+
+		# Library build functions.
+     --databases)
+         DO_BUILD="databases"
+      ;;
+     --arguments)
+         DO_BUILD="arguments"
+      ;;
+     --random)
+         DO_BUILD="random"
+      ;;
+     --strings)
+         DO_BUILD="strings"
+      ;;
+     --integers)
+         DO_BUILD="integers"
+      ;;
+     --math)
+         DO_BUILD="math"
+      ;;
+     --arrays)
+         DO_BUILD="arrays"
+		;;
+
+		# General options.
       -v|--verbose)
         VERBOSE=true
       ;;
@@ -176,8 +227,6 @@ done
 
 # Verbosity
 eval_flags
-
-
 
 
 # list
@@ -218,10 +267,7 @@ fi
 
 
 # depcheck
-if [ ! -z $DO_DEPCHECK ]
-then
-   echo '...'
-fi
+
 
 
 # executables
@@ -256,18 +302,28 @@ then
 fi
 
 
+# program directory
+if [ ! -z "$LIBNAME" ]
+then
+	# Always do the first few directories.
+	( printf "LIBNAME=${LIBNAME}\n"
+	printf "PROGRAM_DIR=\"\$HOME/.\${LIBNAME}\"\n" ) >> $FILENAME
+fi
+
 # create standard directories 
 if [ ! -z $DO_STANDARD_DIRS ]
 then
+	# Everything else will break without some library name.
+	[ -z "$LIBNAME" ] && echo "Must have a library name!" >> $FILEERR && usage 1
+
 	# Die on no argument received.
 	[ -z "$STANDARD_DIRS" ] && echo "Nothing supplied to --standard-dirs flag!" >> $FILEERR && usage 1
   	STANDARD_DIRS_ARR="$(break_list_by_delim "$STANDARD_DIRS")"
 
+	# Die if there was no program directory.
+
 	# Comments 
 	[ ! -z "$DO_COMMENTS" ] && printf "# Standard directories\n"
-
-	# Always do the first few directories.
-	printf "PROGRAM_DIR=\"\$HOME/.\${PROGRAM}\"\n"
 
 	# Have the script run a check for each.
 	for SDIR in ${STANDARD_DIRS_ARR[@]}
@@ -317,8 +373,8 @@ fi
 # db
 if [ ! -z $DO_DB ]
 then
- 	printf "DB=\"${PROGRAM_DIR}/${PROGRAM}.db\"\n"  
- 	printf "BIN_SQL_DIR=\"${BINDIR}/sql\"\n\n"  
+ 	printf "DB=\"\${PROGRAM_DIR}/${LIBNAME}.db\"\n"  
+ 	printf "BIN_SQL_DIR=\"\${BINDIR}/sql\"\n\n"  
 fi
 
 
@@ -327,10 +383,13 @@ if [ ! -z $DO_INITIAL_RUN ]
 then
    ( 
 	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" >> $FILENAME
-	printf "initial_deploy() {\n\tfor E in \${DEPS[@]}\n\tdo " >> $FILENAME
+	printf "initial_deploy() {\n" >> $FILENAME
 
-	# Comments 
-	[ ! -z "$DO_COMMENTS" ] && printf "\n\t\t# Run basic dependency checks." >> $FILENAME
+	if [ ! -z "$EXECUTABLES" ]
+	then
+		# Comments 
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Run basic dependency checks.\n" >> $FILENAME
+		printf "\tfor E in \${DEPS[@]}\n\tdo " >> $FILENAME
 
 	printf "
 		if [ -z \"\$E\" ] || [ ! -x \"\$E\" ] 
@@ -340,6 +399,7 @@ then
 		fi
 	done
 	" >> $FILENAME
+	fi
 
 	# Comments 
 	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Create all directories in \$HOST_DIRS" >> $FILENAME
@@ -373,8 +433,8 @@ if [ ! -z $DO_SECURITY ]
 then
 	printf '\n' >> $FILENAME
    # Set the right internal field seperator for command line args. 
-	# [ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args." >> $FILENAME
-	# printf "IFS=' \n\t'"  >> $FILENAME
+	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args.\n" >> $FILENAME
+	printf "IFS=' \n\t'\n"  >> $FILENAME
 
 	# Limits file creation permissions. 
 	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions.\n" >> $FILENAME
@@ -401,28 +461,95 @@ then
 	[ -z "$WITH" ] && echo "Nothing supplied to --with flag!" && usage 1
 	WITH=$(break_list_by_delim "$WITH")	
 
-	# Lines.
+	# Evaluate excludes.
+	[ ! -z "$WITHOUT" ] && WITHOUT="$( break_list_by_delim "$WITHOUT" )"
+
+	# Limits file creation permissions. 
+	[ ! -z $DO_COMMENTS ] && printf "# Library functions\n" >> $FILENAME
+
+	# Filenames.
+	for LIB_F in ${WITH[@]}
+	do
+		# Get the filename.
+		LIB_FILE="${SRCLIB}/$(grep $LIB_F $LOOKUP_MANIFEST | \
+			awk -F ':' '{print $2}')"
+
+		# Did the user ask that this function be excluded?
+		[ ! -z "$WITHOUT" ] && \
+			[[ $(is_element_present_in 'WITHOUT' "$LIB_F") == 'true' ]] && \
+			continue 
+
+		# Get the file body.
+		if [ -f $LIB_FILE ]
+		then
+			FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
+			( sed -n 2,${FL}p $LIB_FILE
+			printf "\n" ) >> $FILENAME
+		fi	
+	done
+fi
+
+
+# indiv groups
+# I can save many lines with this...
+if [ ! -z $DO_BUILD ]
+then
+	LIB_CHOICE=( $( ls "$SRCLIB/$DO_BUILD" ) )
+	for FR in ${LIB_CHOICE[@]}
+	do
+		# List each line.
+		LIB_FILE="$SRCLIB/${DO_BUILD}/${FR}"
+		LIB_FNAME="$(basename ${DO_BUILD}/${FR%%.sh})"
+		FL=$(wc -l "$LIB_FILE" | cut -d ' ' -f 1)
+
+		# Did the user ask that this be excluded?
+		[ ! -z "$WITHOUT" ] && \
+			[[ $(is_element_present_in 'WITHOUT' "$LIB_FNAME") == 'true' ]] && \
+			continue 
+		
+		# Also evaluate namespaces here.
+		# grep -n -v '#' $LIB_FILE  # Can get the first line this way kind of...
+		# exit
+
+		# You might not want comments. 
+		if [ -f "$LIB_FILE" ] 
+		then 
+			( sed -n 2,${FL}p $LIB_FILE 
+			printf "\n" ) >> "$FILENAME"
+		fi
+	done
+fi
+
+
+
+# include all the libraries
+if [ ! -z $DO_INC_ALL ]
+then
 	while read line
 	do
 		# Save this b/c it's our folder name for different lib functions.
-		if [[ ${line:0:1} == '#' ]] 
+		if [[ ${line:0:1} == '#' ]] || [[ -z "${line}" ]]
 		then
 			continue
 
-		# Move through blanks.
-		elif [[ -z "${line}" ]]
-		then
-			continue	
-
-		# You have hit gold...
+		# Proc
 		else
-			printf "  $line" | \
-				sed 's/\r//' | \
-				awk -F ':' '{print $1 ":          "}' | \
-				head -c 25 
-			printf "$line" | awk -F ':' '{print $2}' 
+			FNAME="$(echo $line | awk -F ':' '{print $1}' )"
+			LIB_FILE="$(echo $line | awk -F ':' '{print $2}' )"
+			FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
+
+			# Did the user ask that this be excluded?
+			[ ! -z "$WITHOUT" ] && \
+				[[ $(is_element_present_in 'WITHOUT' "$FNAME") == 'true' ]] && \
+				continue 
+
+			# If the file doesn't exist, don't compile it.
+			if [ -f "$LIB_FILE" ] 
+			then 
+				( sed -n 2,${FL}p $LIB_FILE 
+				printf "\n" ) >> "$FILENAME"
+			fi
 		fi
 	done < $LOOKUP_MANIFEST
 fi
-
 

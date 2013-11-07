@@ -447,7 +447,7 @@ fi
 #
 # Return status if $1 is a flag or not
 #-----------------------------------------------------#
-function is_flag() {
+is_flag() {
 	echo 'bla'
 	echo 'bla'
 	echo 'bla'
