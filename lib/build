@@ -62,7 +62,7 @@ usage() {
 # Common stuff.
 LIB_MANIFEST="gen.manifest"
 LOOKUP_MANIFEST="lookup.manifest"
-
+BUILD_OPTS="../buildopts"
 
 # Die if no arguments received.
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
