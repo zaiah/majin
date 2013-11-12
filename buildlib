@@ -100,9 +100,10 @@ General Options:
 
 
 # Die if no arguments received.
-[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+[ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
 
 # Process options.
+declare -a DO_BUILD
 while [ $# -gt 0 ]
 do
    case "$1" in
@@ -184,25 +185,25 @@ do
 
 		# Library build functions.
      --databases)
-         DO_BUILD="databases"
+         DO_BUILD[${#DO_BUILD[@]}]="databases"
       ;;
      --arguments)
-         DO_BUILD="arguments"
+         DO_BUILD[${#DO_BUILD[@]}]="arguments"
       ;;
      --random)
-         DO_BUILD="random"
+         DO_BUILD[${#DO_BUILD[@]}]="random"
       ;;
      --strings)
-         DO_BUILD="strings"
+         DO_BUILD[${#DO_BUILD[@]}]="strings"
       ;;
      --integers)
-         DO_BUILD="integers"
+         DO_BUILD[${#DO_BUILD[@]}]="integers"
       ;;
      --math)
-         DO_BUILD="math"
+         DO_BUILD[${#DO_BUILD[@]}]="math"
       ;;
      --arrays)
-         DO_BUILD="arrays"
+         DO_BUILD[${#DO_BUILD[@]}]="arrays"
 		;;
 
 		# General options.
@@ -492,34 +493,37 @@ fi
 
 # indiv groups
 # I can save many lines with this...
-if [ ! -z $DO_BUILD ]
+if [ ! -z "$DO_BUILD" ]
 then
-	LIB_CHOICE=( $( ls "$SRCLIB/$DO_BUILD" ) )
-	for FR in ${LIB_CHOICE[@]}
+	for BUILD_CHOICE in ${DO_BUILD[@]}
 	do
-		# List each line.
-		LIB_FILE="$SRCLIB/${DO_BUILD}/${FR}"
-		LIB_FNAME="$(basename ${DO_BUILD}/${FR%%.sh})"
-		FL=$(wc -l "$LIB_FILE" | cut -d ' ' -f 1)
+		for FR in $( ls "$SRCLIB/$BUILD_CHOICE" ) 
+		do
+			# List each line.
+			LIB_FILE="$SRCLIB/${BUILD_CHOICE}/${FR}"
+			LIB_FNAME="$(basename ${BUILD_CHOICE}/${FR%%.sh})"
+			FL=$(wc -l "$LIB_FILE" | cut -d ' ' -f 1)
 
-		# Did the user ask that this be excluded?
-		[ ! -z "$WITHOUT" ] && \
-			[[ $(is_element_present_in 'WITHOUT' "$LIB_FNAME") == 'true' ]] && \
-			continue 
-		
-		# Also evaluate namespaces here.
-		# grep -n -v '#' $LIB_FILE  # Can get the first line this way kind of...
-		# exit
+			# Did the user ask that this be excluded?
+			[ ! -z "$WITHOUT" ] && \
+				[[ $(is_element_present_in 'WITHOUT' "$LIB_FNAME") == 'true' ]] && \
+				continue 
+			
+			# Also evaluate namespaces here.
+			# grep -n -v '#' $LIB_FILE  
+			
+			# Can get the first line this way kind of...
+			# exit
 
-		# You might not want comments. 
-		if [ -f "$LIB_FILE" ] 
-		then 
-			( sed -n 2,${FL}p $LIB_FILE 
-			printf "\n" ) >> "$FILENAME"
-		fi
+			# You might not want comments. 
+			if [ -f "$LIB_FILE" ] 
+			then 
+				( sed -n 2,${FL}p $LIB_FILE 
+				printf "\n" ) >> "$FILENAME"
+			fi
+		done
 	done
 fi
-
 
 
 # include all the libraries
@@ -552,4 +556,3 @@ then
 		fi
 	done < $LOOKUP_MANIFEST
 fi
-

@@ -421,7 +421,13 @@ fi
 
 # Catch arguments here if we want them.
 OPTS_FROM_LIST=( $( break_list_by_delim $FROM ) )
-[ ! -z "$ONLY_OPTIONS" ] && NO_OPT_FROM_LIST=( $( break_list_by_delim $ONLY_OPTIONS ) )
+if [ ! -z "$ONLY_OPTIONS" ] 
+then 
+	NO_OPT_FROM_LIST=( $( break_list_by_delim $ONLY_OPTIONS ) )
+fi
+
+
+# Break up arguments before moving further.
 COUNTER=0
 declare -a ARG_SUB_SET
 declare -a GENERATE_LOGIC_SET
