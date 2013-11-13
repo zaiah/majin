@@ -105,6 +105,11 @@ General Options:
 # Die if no arguments received.
 [ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
 
+
+# Still to do, add --regen for rebuilding libraries.
+# add --update to initial_install (to rebuild tables and add any new directories that may be part of script.)
+# documenting individual libraries ( --libusage )
+
 # Process options.
 declare -a DO_BUILD
 while [ $# -gt 0 ]
