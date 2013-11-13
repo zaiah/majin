@@ -307,7 +307,8 @@ fi
 if [ ! -z "$LIBNAME" ]
 then
 	# Always do the first few directories.
-	( printf "LIBNAME=${LIBNAME}\n"
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Library and directory name\n"
+	printf "LIBNAME=\"${LIBNAME}\"\n"
 	printf "PROGRAM_DIR=\"\$HOME/.\${LIBNAME}\"\n" ) >> $FILENAME
 fi
 
@@ -324,7 +325,7 @@ then
 	# Die if there was no program directory.
 
 	# Comments 
-	[ ! -z "$DO_COMMENTS" ] && printf "# Standard directories\n"
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Standard directories\n"
 
 	# Have the script run a check for each.
 	for SDIR in ${STANDARD_DIRS_ARR[@]}
@@ -340,7 +341,7 @@ then
 		# Have to evaluate absolute names here, lest we don't want stuff in the program directory.	
 		printf "\"\${PROGRAM_DIR}/${SDIR}\" "
 	done	
-	printf ")\n\n" 
+	printf ")\n\n" ) >>  $FILENAME
 fi
 
 
@@ -352,7 +353,7 @@ then
   	STATIC_ARR="$(break_list_by_delim "$STATIC")"
 
 	# Comments 
-	[ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
 
 	# Have the script run a check for each.
 	for SVAR in ${STATIC_ARR[@]}
@@ -367,15 +368,15 @@ then
 			# If not, then just make a spot for it.
 			printf "${SVAR}=\n" | tr '[a-z]' '[A-Z]'
 		fi
-	done	
+	done ) >> $FILENAME	
 fi
 
 
 # db
 if [ ! -z $DO_DB ]
 then
- 	printf "DB=\"\${PROGRAM_DIR}/${LIBNAME}.db\"\n"  
- 	printf "BIN_SQL_DIR=\"\${BINDIR}/sql\"\n\n"  
+ 	( printf "DB=\"\${PROGRAM_DIR}/\${LIBNAME}.db\"\n"  
+	printf "BIN_SQL_DIR=\"\${BINDIR}/sql\"\n\n"  ) >> $FILENAME
 fi
 
 
@@ -383,39 +384,38 @@ fi
 if [ ! -z $DO_INITIAL_RUN ]
 then
    ( 
-	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" >> $FILENAME
-	printf "initial_deploy() {\n" >> $FILENAME
+	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" 
+	printf "initial_deploy() {\n" 
 
 	if [ ! -z "$EXECUTABLES" ]
 	then
 		# Comments 
-		[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Run basic dependency checks.\n" >> $FILENAME
-		printf "\tfor E in \${DEPS[@]}\n\tdo " >> $FILENAME
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Run basic dependency checks.\n" 
+		printf "\tfor E in \${DEPS[@]}\n\tdo " 
 
-	printf "
+		printf "
 		if [ -z \"\$E\" ] || [ ! -x \"\$E\" ] 
 		then
 			echo \"\$E is not on system.\"
 			exit 1
 		fi
-	done
-	" >> $FILENAME
+	done\n"
 	fi
 
 	# Comments 
-	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Create all directories in \$HOST_DIRS" >> $FILENAME
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Create all directories in \$HOST_DIRS" 
 	
 	printf "
 	for D in \${HOST_DIRS[@]}
 	do
 		mkdir -p \"\$D\"
-	done" >> $FILENAME
+	done" 
 	
 	
 	# Comments 
 	if [ ! -z $DO_DB ]
 	then
-		[ ! -z "$DO_COMMENTS" ] && printf "\n\n\t# Create tables" >> $FILENAME
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\n\t# Create tables" 
 
 		printf "	
 	for SD in \$( ls \$BIN_SQL_DIR )
@@ -435,7 +435,7 @@ then
 	printf '\n' >> $FILENAME
    # Set the right internal field seperator for command line args. 
 	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args.\n" >> $FILENAME
-	printf "IFS=' \n\t'\n"  >> $FILENAME
+	printf "IFS=' \n\t'\n\n"  >> $FILENAME
 
 	# Limits file creation permissions. 
 	[ ! -z $DO_COMMENTS ] && printf "# Limits file creation permissions.\n" >> $FILENAME
