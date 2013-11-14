@@ -59,6 +59,7 @@ Shell Script tuning:
 -o | --options              Generate a list of options.
 -x | --only-options <list>  Do not generate logic for items in list.
 -t | --to <file>            Make changes on <file>.
+-i | --static <arg>         Turn list in <arg> to variables.
 -u | --usage <file>         Make changes on <file>.
 -z | --shell <type>         Choose a particular shell for she-bang line.
                             (Default is bash)
@@ -215,6 +216,12 @@ do
 			LICENSE=$1
 		;;
 
+		-i|--static)
+			DO_STATIC=true
+			shift
+			STATIC_VARS="$1"
+		;;
+
 		-l|--logic)
 			DO_LOGIC=true
 		;;
@@ -273,10 +280,19 @@ do
 shift
 done
 
+# Generate a file.
+FILENAME=${FILENAME:-'/dev/stdout'}
+FILEERR=${FILENAME:-'/dev/stderr'}
+if [[ ! $FILENAME == '/dev/stdout' ]] && [ -f $FILENAME ] 
+then
+	rm $RM_FLAGS $FILENAME
+fi
+
 # No more processing needed.
 if [ -z $DO_LOGIC ] && \
 	[ -z $SELECT_LICENSE ] && \
 	[ -z $DO_OPTIONS ] && \
+	[ -z $DO_STATIC ] && \
 	[ -z $SHOW_USAGE ] && \
 	[ -z "$SUMMARY" ] && \
 	[ -z "$NAME" ]
@@ -294,14 +310,20 @@ then
 	usage 1
 fi
 
-
-# Generate a file.
-FILENAME=${FILENAME:-'/dev/stdout'}
-FILEERR=${FILENAME:-'/dev/stderr'}
-if [[ ! $FILENAME == '/dev/stdout' ]] && [ -f $FILENAME ] 
-then
-	rm $RM_FLAGS $FILENAME
+# Need the ability to choose between action flags and logic / arugment flags.
+# If there's no list, manifest or file to read, this is pretty much useless.
+if [ -z "$FROM" ] || [[ "${FROM:0:1}" == '-' ]]
+then 
+	if [ ! -z $DO_OPTIONS ] || \
+		[ ! -z $DO_LOGIC ] || \
+		[ ! -z $SHOW_USAGE ] || \
+		[ ! -z $ONLY_OPTIONS ]
+	then
+		echo "No list supplied via --from!" >> $FILEERR
+		usage 1
+	fi
 fi
+
 
 
 # Choose a shell.
@@ -402,22 +424,37 @@ then
 fi
 
 
-# Need the ability to choose between action flags and logic / arugment flags.
-# If there's no list, manifest or file to read, this is pretty much useless.
-if [ -z "$FROM" ] || [[ "${FROM:0:1}" == '-' ]]
-then 
-	if [ ! -z $SHOW_USAGE ] || \
-		[ ! -z $DO_OPTIONS ] || \
-		[ ! -z $DO_LOGIC ] || \
-		[ ! -z $ONLY_OPTIONS ]
-	then
-	echo "No list supplied via --from!" >> $FILEERR
-	usage 1
-	else
-		exit 0
-	fi
+
+# Create static variables. 
+if [ ! -z $DO_STATIC ]
+then
+	# Die on no argument received.
+	[ -z "$STATIC_VARS" ] && echo "Nothing supplied to --static flag!" && usage 1
+  	STATIC_ARR="$(break_list_by_delim "$STATIC_VARS")"
+
+	# Comments 
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
+
+	# Have the script run a check for each.
+	for SVAR in ${STATIC_ARR[@]}
+	do
+		if [[ "$SVAR" =~ "=" ]]
+		then
+			# Is this a key value pair
+			printf ${SVAR%%=*} | tr '[a-z]' '[A-Z]'
+			printf "=\"${SVAR##*=}\"\n"   
+
+		else
+			# If not, then just make a spot for it.
+			printf "${SVAR}=\n" | tr '[a-z]' '[A-Z]'
+		fi
+	done ) >> $FILENAME	
 fi
 
+
+# From
+if [ ! -z "$FROM" ]
+then
 
 # Catch arguments here if we want them.
 OPTS_FROM_LIST=( $( break_list_by_delim $FROM ) )
@@ -648,4 +685,6 @@ then
 		printf "   echo '...'\n"
 		printf "fi\n" ) >> $FILENAME
 	done
+fi
+
 fi
