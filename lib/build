@@ -216,6 +216,7 @@ do
 		FNAME="$(echo $line | awk -F ':' '{print $1}' )"
 		FDESC="$(echo $line | awk -F ': ' '{print $2}' )"
 		FILE_REF="$DIRNAME/$FNAME.sh"
+		#FILE_REF="/dev/stdout"
 
 		# If the file doesn't exist, create it.
 		if [ ! -f "$FILE_REF" ] 
@@ -246,10 +247,30 @@ do
 			# Regenerate.
 			if [ ! -z $FO ]
 			then
+				# echo "End of comments in $FILE_REF: $FO"
+				# echo "Length of $FILE_REF: $LIM"
 				BUFFER=$(sed -n ${FO},${LIM}p < "$FILE_REF")
+				
+				# Within this file, we'll be wrapping $FDESC
+				# Set a column width,
+				# If text stream is beyond this, find the last space before column width 
+				# Chop rest of line, and append newline and #
+				# Then recalculate the length.
+				#OR
+				# Set a column width.
+				# Record the position of each of the spaces that approach the column width
+				# At those positions within the string insert '\n# ' and allow the string to
+				# continue.
+				# 
+				# When done this will be useful in other places...
+				# The manifest should have the return type within [ ]  or { }
+				# and have the usage within some string as well.
+				#
+				# Maintlib will probably be handling this in the future...
+				# Can use tabs if these must stay in one file... 
 				$BUILD_OPTS --name $FNAME --summary "$FDESC" > "$FILE_REF"
-				printf "$BUFFER" >> $FILE_REF
-		#		echo $BUFFER >> "$FILE_REF"
+				printf -- "%s" "$BUFFER" >> $FILE_REF
+	#			echo $BUFFER >> "$FILE_REF"
 
 			# Generate again with new documentation.
 			else

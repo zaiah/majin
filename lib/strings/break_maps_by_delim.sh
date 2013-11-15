@@ -9,4 +9,3 @@ break_maps_by_delim() {
 	local m=(`printf $1 | sed "s/${join}/ /g"`)
 	echo ${m[@]}			# Return the list all ghetto-style.
 }
-
