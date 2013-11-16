@@ -72,6 +72,8 @@ Library Runtime Actions:
                               programs located in your \$PATH
 -s | --static <arg>           Convert names in <arg> to variables pointing to 
                               immutable values. 
+-ff| --functions-for <list> Generate some skelelon functions.
+                            ( echo '...' is default )
 -d | --depcheck               Generate code to run a dependency check.
 -s | --standard_dirs <arg>    Convert names in <arg> to variables that 
                               reference your program's common directories.
@@ -208,6 +210,12 @@ do
      -i|--initial-run)
          DO_INITIAL_RUN=true
       ;;
+
+		-ff|--functions-for)
+			DO_FUNCTIONS=true
+			shift
+			FUNCTION_LIST="$1"
+		;;
 
      -s|--security)
          DO_SECURITY=true
@@ -422,6 +430,33 @@ if [ ! -z $DO_DB ]
 then
  	( printf "DB=\"\${PROGRAM_DIR}/\${LIBNAME}.db\"\n"  
 	printf "BIN_SQL_DIR=\"\${BINDIR}/sql\"\n\n"  ) >> $FILENAME
+fi
+
+
+# Add some function bodies.
+if [ ! -z $DO_FUNCTIONS ]
+then
+	# Comments.
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Functions\n"
+
+	# List some empty functions bodies.
+  	FUNCTION_LIST="$(break_list_by_delim "$FUNCTION_LIST")"
+	for FVAR in ${FUNCTION_LIST[@]}
+	do
+		if [[ "$FVAR" =~ "=" ]]
+		then
+			# Is this a key value pair
+			printf "${FVAR%%=*}() {\n" 
+		#	printf "=\"${FVAR##*=}\"\n"    # This doesn't work.  end...
+			printf "${FVAR}" | sed 's/[a-z].*=//'
+			printf "\n}\n" 
+		else
+			# If not, then just make a spot for it.
+			printf "${FVAR}() {\n" 
+			printf "   echo '...'"
+			printf "\n}\n\n" 
+		fi
+	done ) >> $FILENAME
 fi
 
 
@@ -718,7 +753,7 @@ then
 			continue 
 
 		# Get the file body.
-		if [ -f $LIB_FILE ]
+		if [ -f "$LIB_FILE" ]
 		then
 			FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
 			( sed -n 2,${FL}p $LIB_FILE
