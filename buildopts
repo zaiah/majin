@@ -64,6 +64,8 @@ Shell Script tuning:
 -z | --shell <type>         Choose a particular shell for she-bang line.
                             (Default is bash)
 -m | --from-manifest        Generate through the use of a manifest file.
+-ff| --functions-for <list> Generate some skelelon functions.
+                            ( echo '...' is default )
 -b | --binref               Include references to script file and directory 
                             that script resides in.
 -y | --libref               Include references to library 
@@ -204,6 +206,12 @@ do
 		-a|--according-to)
 			shift
 			ACC_FILE=$1
+		;;
+
+		-ff|--functions-for)
+			DO_FUNCTIONS=true
+			shift
+			FUNCTION_LIST="$1"
 		;;
 
 		-d|--die-on-no-arg)
@@ -551,6 +559,34 @@ then
 	( printf 'Show this help and quit.\n"\n' 
 	printf '   exit $STATUS\n'
 	printf '}\n\n' ) >> $FILENAME
+fi
+
+
+# Add some function bodies.
+if [ ! -z $DO_FUNCTIONS ]
+then
+	# Comments.
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Functions\n"
+
+	# List some empty functions bodies.
+  	FUNCTION_LIST="$(break_list_by_delim "$FUNCTION_LIST")"
+	for FVAR in ${FUNCTION_LIST[@]}
+	do
+		if [[ "$FVAR" =~ "=" ]]
+		then
+			# Is this a key value pair
+			printf "${FVAR%%=*}() {\n" 
+		#	printf "=\"${FVAR##*=}\"\n"    # This doesn't work.  end...
+			printf "${FVAR}" | sed 's/[a-z].*=//'
+			printf "\n}\n" 
+		else
+			# If not, then just make a spot for it.
+			printf "${FVAR}() {\n" 
+			printf "   echo '...'"
+			printf "\n}\n\n" 
+		fi
+	done ) >> $FILENAME
+
 fi
 
 
