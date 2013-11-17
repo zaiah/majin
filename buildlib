@@ -487,7 +487,7 @@ then
 			echo \"\$E is not on system.\"
 			exit 1
 		else
-			[ ! -z \$VERBOSE ] && echo \"$(basename $E) is present at: $E.\"
+			[ ! -z \$VERBOSE ] && echo \"\$(basename \$E) is present at: \$E.\"
 		fi
 	done\n"
 	fi
