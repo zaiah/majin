@@ -324,6 +324,8 @@ fi
 
 
 # executables
+# Going to make a list of these...
+# SQLITE3EX=
 if [ ! -z $DO_EXECUTABLES ]
 then
 	# Die on no argument received.
@@ -342,7 +344,7 @@ then
 	for ETERM in ${EXECUTABLES[@]}
 	do
 		printf "${ETERM}=" | tr '[a-z]' '[A-Z]'
-		printf "\"\$(which ${ETERM})\"\n"
+		[[ ! $ETERM == "sqlite" ]] && [[ ! $ETERM == "sqlite3" ]] && printf "\"\$(which ${ETERM})\"\n" || printf "\"\$(which sqlite3)\"\n"
 	done	
 
 	# Have the script run a check for each.
