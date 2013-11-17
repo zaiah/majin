@@ -1,3 +1,16 @@
+# Manifests 
+SRCLIB="${BINDIR}/lib"
+LIB_MANIFEST="${SRCLIB}/gen.manifest"
+LOOKUP_MANIFEST="${SRCLIB}/lookup.manifest"
+
+# Filenames
+FILENAME="/dev/stdout"
+FILEERR="/dev/stderr"
+
+# Gotta deal with these within the lib.
+DELIM=","
+JOIN="="
+
 #-----------------------------------------------------#
 # break_list_by_delim
 #
@@ -375,6 +388,7 @@ randomize_to() {
 
 	echo $STRING
 }
+
 
 #-----------------------------------------------------#
 # is_element_present_in

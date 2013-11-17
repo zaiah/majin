@@ -34,19 +34,6 @@ LIB="${BINDIR}/lib.complete"
 source $LIB
 PROGRAM="buildlib"
 
-# Manifests 
-SRCLIB="${BINDIR}/lib"
-LIB_MANIFEST="${SRCLIB}/gen.manifest"
-LOOKUP_MANIFEST="${SRCLIB}/lookup.manifest"
-
-# Filenames
-FILENAME="/dev/stdout"
-FILEERR="/dev/stderr"
-
-# Gotta deal with these within the lib.
-DELIM=","
-JOIN="="
-
 # usage() - Show usage message and die with $STATUS
 usage() {
    STATUS="${1:-0}"

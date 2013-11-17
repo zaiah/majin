@@ -44,23 +44,175 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--a | --add <arg>              desc
--n | --name <arg>             desc
--s | --summary <arg>          desc
--r | --remove <arg>           desc
--e | --edit <arg>             desc
--f | --from <arg>             desc
--c | --class <arg>            desc
--c | --classes                desc
+-a | --add <arg>              Add a new library. 
+-n | --name <arg>             Add a new library with name <arg> 
+-r | --remove <arg>           Remove a library. 
+-e | --edit <arg>             Edit a library with an available editor.
+-f | --from <arg>             Extract a library from some code. 
+-c | --class <arg>            Use class name <arg> when modifying libraries.
+-ac | --add-class <arg>       Add a class. 
+-rc | --remove-class <arg>    Remove a class.
+-l | --classes                List classes available. 
+-g | --get <arg>              Add a new library. 
+-q | --query                  Query available libraries.
+-o | --overwrite              Overwrite a class when a library already exists.
+--lookup                      Show the lookup table.
+--lib                         Check summaries and names within bashutil. 
 -v | --verbose                Be verbose in output.
 -h | --help                   Show this help and quit.
 "
    exit $STATUS
 }
 
+# Some local functions
+add_to_library(){
+	echo '...'
+}
+
+# Get class names.
+get_class_names() {
+  	grep '#' $LIB_MANIFEST | sed 's/# //'
+}
+
+
+# Locate lib name.
+locate_lib_name () {
+	while [ $# -gt 0 ]
+	do
+		case "$1" in
+			--lib) __L="$1" ;;
+			--file) __F="$1" ;;
+		esac
+		shift
+	done
+
+	SL=$(grep --line-number "$1 ()" $FROM | awk -F ':' '{ print $1 }')
+}
+
+
+# Stop and return block til character (using wc -b)
+#------------------------------------------------------
+# search_for() 
+# 
+# With BASH there are a ton of stupid rules to keep
+# in mind.
+# comments (#) for one
+# } b/c it can be a var
+#-----------------------------------------------------#
+search_for() {
+	# Harvest...
+	while [ $# -gt 0 ]
+	do
+		case "$1" in
+			-i|--in)
+				shift
+				__BLOCK__="$1"
+			;;
+			-c|--char|--this)
+				shift
+				__FIND__="${1:0:1}"
+			;;
+			-s|--string)
+				shift
+				__CHAR__="$1"
+			;;
+		esac
+		shift
+	done
+
+	# Probably ought to check if getting the block works...
+#	printf "%s" "$__BLOCK__"
+
+	# Escape any funny characters. 
+	__BLOCK__="$(printf "%s" "$__BLOCK__")"
+
+	# Define a new line here.
+NEWLINE="
+"
+
+	# Iterate through string supplied via $__BLOCK__
+	for __CHAR__ in `seq 0 ${#__BLOCK__}`
+	do
+		# Get the next character if match was !
+		# If not move on.
+		CHAR_1="${__BLOCK__:$__CHAR__:1}"
+
+		# Newlines typically mean the end of comments.
+		if [[ $CHAR_1 == $NEWLINE ]] 
+		then 
+			IN_COMM=false 
+			IN_VAR=false
+			continue 
+		fi
+
+		
+		# If it's in a var, need to skip.
+		if [[ $CHAR_1 == '$' ]] && \
+			[[ ${__BLOCK__:$(( $__CHAR__ + 1 )):1} == '{' ]]
+		then 
+			IN_VAR=true && continue
+		fi
+
+		# [[ $CHAR_1 == ' ' ]]
+		[[ $CHAR_1 == '{' ]] && [ $IN_VAR == true ] && continue
+
+		if [[ $CHAR_1 == '}' ]] && [ $IN_VAR == true ] 
+		then 
+			IN_VAR=false
+			continue
+		fi
+
+#		# If it's in a comment, need to skip.
+		if [[ $CHAR_1 == '#' ]] 
+		then
+			[ ! -z $IN_VAR ] && IN_COMM=true && continue
+		fi
+
+		# If it's a string we need to skip.
+		if [[ ${CHAR_1} == "'" ]] || [[ ${CHAR_1} == '"' ]]
+		then
+			if [ -z $IN_STR ] 
+			then
+				IN_STR=true 
+			
+			elif [ $IN_STR == false ] 
+			then 
+				IN_STR=true 
+
+			elif [ $IN_STR == true ] 
+			then 
+				IN_STR=false
+			fi
+			continue	
+		fi
+
+		# If you find it, great!
+		if [[ $CHAR_1 == $__FIND__ ]] 
+		then
+	#		echo ${__BLOCK__:$(( $__CHAR__ - 10  )):10} > /dev/stderr
+	#		echo s $IN_STR > /dev/stderr
+	#		echo c $IN_COMM > /dev/stderr
+			if [ $IN_STR == true ] || [ $IN_COMM == true ] 
+			then 
+				continue 
+#				echo $__FIND__
+			fi
+			echo $__CHAR__
+			break
+		fi
+	done
+
+#			echo "Found '$__FIND__' at $__CHAR__"
+	exit
+}
+
+
+# Regenerate entire library.
+# after adding new names.
+# You can ...
 
 # Die if no arguments received.
-[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+[ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
 
 # Process options.
 while [ $# -gt 0 ]
@@ -71,39 +223,66 @@ do
          shift
          ADD="$1"
       ;;
+     -s|--summary)
+         shift
+         SUMMARY="$1"
+		;;
      -n|--name)
          DO_NAME=true
          shift
          NAME="$1"
       ;;
-     -s|--summary)
-         DO_SUMMARY=true
-         shift
-         SUMMARY="$1"
-      ;;
      -r|--remove)
          DO_REMOVE=true
+			DO_FILEMOD=true
          shift
-         REMOVE="$1"
+         SELECTION="$1"
       ;;
      -e|--edit)
          DO_EDIT=true
+			DO_FILEMOD=true
          shift
-         EDIT="$1"
+         SELECTION="$1"
       ;;
+#	  -x|--extract)
+#        DO_FROM=true
+#			shift
+#			FEXNAME="$1"
+#	   ;;	
      -f|--from)
-         DO_FROM=true
          shift
          FROM="$1"
       ;;
      -c|--class)
-         DO_CLASS=true
          shift
          CLASS="$1"
       ;;
-     -c|--classes)
-         DO_CLASSES=true
+     -ac|--add-class)
+         DO_ADD_CLASS=true
+         shift
+         CLASS_TO_ADD="$1"
       ;;
+     -rc|--remove-class)  # May not be the greatest of choices...
+         DO_REMOVE_CLASS=true
+         shift
+         CLASS="$1"
+      ;;
+     -o|--overwrite)
+         DO_OVERWRITE=true
+      ;;
+     -q|--query)
+         DO_QUERY=true
+      ;;
+		# Grab a library from git repo. 
+     -g|--get)
+         DO_MERGE=true
+      ;;
+     --lookup)
+        	DO_SHOW_LOOKUP=true
+		;;
+     --lib)
+        	DO_SHOW_LIB=true
+		;;
      -v|--verbose)
         VERBOSE=true
       ;;
@@ -121,57 +300,180 @@ shift
 done
 
 
+# more...
+EDITOR=vi
+
 # Evaluate the flags.
 eval_flags
 
+
 # add
-if [ ! -z $DO_ADD ]
+if [ ! -z $DO_ADD ] || [ ! -z $DO_FROM ]
 then
 	# Class?
-	if [ ! -z "$CLASS" ] 
+	if [ -z "$CLASS" ] 
 	then 
 		echo "Can't add a library without some sort of general classification."
 		echo "(Try the --class flag, or use --classes for a list of available classes.)"
 		usage 1
+
+	# Check that the classname is valid.
+	else
+		# If it's not within a list, drop it and kill the script.
+		CLASS_NAME_ARR="$(get_class_names | tr [A-Z] [a-z])"
+		if [[ $(is_element_present_in CLASS_NAME_ARR $CLASS) == 'false' ]]
+		then
+			echo 'This class does not exist already.'
+			echo 'Please use the -ac option to add a record of it.'
+		fi
 	fi
 
-	# Add file into library.
+	# Extract if we did it this way.
+	if [ ! -z $DO_FROM ] 
+	then
+		# Did you ask for anything to extract?
+		[ -z "$FEXNAME" ] && echo "Nohting to extract." && usage 1
+
+		# Does the file actually exist?
+		[ ! -f "$FROM" ] && echo "Can't find file $FROM." && usage 1
+
+		# Set a name.
+		[ -z "$NAME" ] && NAME="$FEXNAME"
+
+		# Find the function name within the file.
+		# -x pear --from mega.sh
+		SL=$(grep --line-number "$FEXNAME ()" $FROM | awk -F ':' '{ print $1 }')
+		if [ -z "$SL" ] 
+		then 
+			SL=$(grep --line-number "$FEXNAME()" $FROM | awk -F ':' '{ print $1 }')
+		fi
+
+		# Die if nothing found.
+		if [ -z "$SL" ] 
+		then
+			printf "Couldn't find any function: $FEXNAME \nWithin file: $FROM\n"
+			exit 1
+		fi
+
+		# Define the possible range.
+		PFR="$(sed -n ${SL},$(wc -l $FROM | awk '{print $1}')p $FROM)"
+
+		# Can move through each character and see if we run into a '}'
+		# Extract function from CLAUSE building to get '}'
+		FEXEND=$(search_for --this '}' --in "$PFR")
+
+		# Using for to iterate through file?
+		BUFFER="$(printf "%s" "$PFR" | head -c $(( $FEXEND + 1 )))"
+
+		printf "%s" "$BUFFER"
+		exit
+	fi
+
+
+	# Did the user supply any arugments? 
+	if [ -z "$NAME" ] && [ -z "$ADD" ] 
+	then
+		echo "Neither --name or <arg> within --add was supplied."
+		echo "Giving up..."
+		usage 1
+	fi
+
+
+	# Does this file have a proper name or not?
+	[ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]] && NAME="${NAME}.sh"
+	__LIBFILE__="${NAME:-$ADD}"
+	__LIBNAME__="${NAME:-${ADD}}"
+	[ -z "$NAME" ] && [ ! -z "$ADD" ] && NAME="${ADD%%.sh}" 
+
+	
+	# Also check if this name already exists in the list.
+	if [[ ! "$(grep "${__LIBNAME__%%.sh}" $LIB_MANIFEST)" == "" ]] && \
+		[ -z $DO_OVERWRITE ]
+	then
+		echo "This library is already in your bashutil toolkit."
+		printf "Please either use the --extract flag to update the library"
+		printf " or the --overwrite flag to wipe the original.\n"
+		exit 1
+	fi
+
 	# Copying with the correct name if I've asked for one.
-   echo '...'
+	[ -f "$ADD" ] && cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
+
+	# Or copy the buffer...
+	[ ! -z "$BUFFER" ] && printf "%s" "$BUFFER" >> $SRCLIB/$CLASS/$__LIBFILE__ 
+
+	# Add blank line and add entry to manifest.
+	LN=$(grep --line-number "# $CLASS" $LIB_MANIFEST | awk -F ':' '{print $1}')
+	sed -i ${LN}G $LIB_MANIFEST 
+	sed -i "$(( $LN + 1 ))s#.*#"${__LIBNAME__%%.?h}:$SUMMARY"#" $LIB_MANIFEST
+	
+	# Then add to lookup file.
+	echo "${__LIBNAME__%%.?h}:$CLASS/$__LIBFILE__" >> $LOOKUP_MANIFEST
 fi
 
 
-# remove
-if [ ! -z $DO_REMOVE ]
+
+# File mod
+if [ ! -z $DO_FILEMOD ]
 then
-	# REmove from folder and manifest file.
-   echo '...'
-fi
-
-
-# edit
-if [ ! -z $DO_EDIT ]
-then
-	# Open a window allowing one to edit the class.
-
 	# Edit manifest too?
-   echo '...'
+	__SRCFILE__=$(grep "$SELECTION" $LOOKUP_MANIFEST | \
+		awk -F ':' '{print $2}') 
+	__FILECT__=$(grep "$SELECTION" $LOOKUP_MANIFEST | wc -l)
+
+	# Trying to do more than one?
+	if [ $__FILECT__ -gt 1 ]
+	then
+		echo "There are too many files matching."
+		exit 1
+	fi
+
+	# Make a more accessible name.
+	__SRCFILE__="$SRCLIB/$__SRCFILE__"
+
+	# remove
+	if [ ! -z $DO_REMOVE ]
+	then
+		# Remove from folder and manifest file.
+		[ -f "$__SRCFILE__" ] && rm $RM_FLAGS "$__SRCFILE__"
+
+		# Drop the line from each manifest file.
+		sed -i "s#$(grep "$SELECTION" $LIB_MANIFEST)##" $LIB_MANIFEST
+		sed -i "s#$(grep "$SELECTION" $LOOKUP_MANIFEST)##" $LOOKUP_MANIFEST
+	fi
+
+	# edit
+	if [ ! -z $DO_EDIT ]
+	then
+		# Open a window allowing one to edit the class.
+		$EDITOR "$__SRCFILE__"
+	fi
+
+	# At the end of each of these, sed should drop all the lines...
 fi
 
-
-# from
-if [ ! -z $DO_FROM ]
-then
-	# Extract the function body (matching the name) from an existent library.
-   echo '...'
-fi
 
 
 # class
-if [ ! -z $DO_CLASS ]
+if [ ! -z $DO_ADD_CLASS ]
 then
 	# Choose a class.
-   echo '...'
+	CLASS_NAME_ARR="$(get_class_names | tr [A-Z] [a-z])"
+	if [[ $(is_element_present_in CLASS_NAME_ARR "$CLASS_TO_ADD") == 'true' ]]
+	then
+		echo 'This class already exists.'
+		exit 1
+	fi
+
+	# Add to lib 
+	printf "\n# $CLASS_TO_ADD\n" >> $LIB_MANIFEST
+fi
+
+
+# Class removal
+if [ ! -z $DO_REMOVE_CLASS ]
+then
+	echo '...'
 fi
 
 
@@ -179,5 +481,13 @@ fi
 if [ ! -z $DO_CLASSES ]
 then
 	# List all the available classes.
-   echo '...'
+  	# grep '#' $LIB_MANIFEST | sed 's/# //'
+	get_class_names
 fi
+
+# Directly edit either the lookup or library files.
+[ ! -z $DO_SHOW_LOOKUP ] && $EDITOR $LOOKUP_MANIFEST
+[ ! -z $DO_SHOW_LIB ] && $EDITOR $LIB_MANIFEST
+
+[ ! -z $DO_QUERY ] && echo "Not done..."
+[ ! -z $DO_MERGE ] && echo "Not done..."

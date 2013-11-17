@@ -33,8 +33,6 @@ SELF="$(readlink -f $0)"
 LIB="${BINDIR}/lib.complete"
 source $LIB
 PROGRAM="buildopts"
-DELIM=","
-JOIN="="
 
 
 # usage message
@@ -597,7 +595,7 @@ then
 	[ ! -z $DO_COMMENTS ] && printf '\n# Die if no arguments received.' >> $FILENAME
 
 	# Die!
-	printf '\n[ -z $BASH_ARGV ] && printf "Nothing to do\\n" && usage 1\n' >> $FILENAME
+	printf '\n[ -z "$BASH_ARGV" ] && printf "Nothing to do\\n" && usage 1\n' >> $FILENAME
 fi
 
 
