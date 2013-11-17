@@ -705,7 +705,7 @@ then
 
 	# Set a normal path. 
 	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path.\n" >> $FILENAME
-	printf 'PATH="/usr/local/bin:/bin:/usr/bin"\n' 
+	printf 'PATH="/usr/local/bin:/bin:/usr/bin:/usr/sbin:/usr/local/sbin"\n' 
 	printf 'export PATH\n\n' ) >> $FILENAME
 fi
 
