@@ -331,7 +331,7 @@ then
 	for ETERM in ${EXECUTABLES[@]}
 	do
 		printf "${ETERM}=" | tr '[a-z]' '[A-Z]'
-		[[ ! $ETERM == "sqlite" ]] && [[ ! $ETERM == "sqlite3" ]] && printf "\"\$(which ${ETERM})\"\n" || printf "\"\$(which sqlite3)\"\n"
+		[[ ! $ETERM == "sqlite" ]] && [[ ! $ETERM == "sqlite3" ]] && printf "\"\$(which ${ETERM} 2>/dev/null)\"\n" || printf "\"\$(which sqlite3 2>/dev/null)\"\n"
 	done	
 
 	# Have the script run a check for each.
