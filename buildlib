@@ -456,6 +456,19 @@ then
 	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" 
 	printf "initial_deploy() {\n" 
 
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Some command handling.\n" 
+
+	# Add some logic.
+	printf "while [ \$# -gt 0 ]
+	do
+		case \"\$1\" in
+			-n|--die-on-dependency-lack)
+			DIE_ON_DEPEDENCY_LACK=true
+			;;
+		esac
+		shift
+	done\n\n"
+
 	# Verbose eval.
 	printf "\tif [ ! -z \$VERBOSE ] 
 	then
@@ -471,10 +484,11 @@ then
 		printf "\tfor E in \${DEPS[@]}\n\tdo " 
 
 		printf "
+		[ ! -z \$VERBOSE ] && echo 'Checking dependencies...\n'
 		if [ -z \"\$E\" ] || [ ! -x \"\$E\" ] 
 		then
-			echo \"\$E is not on system.\"
-			exit 1
+			echo \"\$E is either not on this system or is not executable.\"
+			[ ! -z \$DIE_ON_DEPENDENCY_LACK ] && exit 1
 		else
 			[ ! -z \$VERBOSE ] && echo \"\$(basename \$E) is present at: \$E.\"
 		fi
@@ -525,17 +539,17 @@ then
 		printf "\nINITIAL_INSTALL_DIR=\"${INITIAL_INSTALL_DIR}\"\n"
 	fi
 	
+	# Create the initial_install function
+	printf "\ninitial_install() {\n"
+	
 	# Start moving through the function.
 	[ ! -z "$DO_COMMENTS" ] && printf "\n# Initial install of program." 
 
 	# Keep track of install directories.
-	printf "\nSW_INSTALL=\"\${PROGRAM_DIR}/INSTALL\""
-
-	# Create the initial_install function
-	printf "\ninitial_install() {\n"
+	printf "\n\tSW_INSTALL=\"\${PROGRAM_DIR}/INSTALL\""
 
 	# Catch args, there are some...
-	printf "# Need some flags to catch install dir, arguments for what should be linked...
+	printf "\n\t# Need some flags to catch install dir, arguments for what should be linked...
 	while [ \$# -gt 0 ]
 	do
 		case "\$1" in
@@ -623,7 +637,7 @@ then
 	# Do some more more magic.	
 	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Check for what type of file exists in \$BINDIR" 
 
-	printf "\n\tSW_INSTALLS=( \$(printf \$1 | sed 's/,/ /g') )
+	printf "\n\tSW_INSTALLS=( \$(printf \$LN_ARGS | sed 's/,/ /g') )
 	declare -a SW_LOCATIONS
 	for FILE in \${SW_INSTALLS[@]}
 	do
@@ -638,7 +652,7 @@ then
 
 
 		# Link 
-		LNFILE=\"\$(basename \${FILE})\" 
+		LNFILE=\"\$(basename \${FILE%%.sh})\" 
 
 		# Quick test.
 		if [ -L \"\$LNFILE\" ] 

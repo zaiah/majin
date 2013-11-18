@@ -184,7 +184,7 @@ do
 
 		-f|--from)
 			shift
-			FROM=$1
+			FROM="$1"
 		;;
 
 		-p|--program)
@@ -203,7 +203,7 @@ do
 
 		-a|--according-to)
 			shift
-			ACC_FILE=$1
+			ACC_FILE="$1"
 		;;
 
 		-ff|--functions-for)
@@ -219,7 +219,7 @@ do
 		-e|--license)
 			SELECT_LICENSE=true
 			shift
-			LICENSE=$1
+			LICENSE="$1"
 		;;
 
 		-i|--static)
@@ -235,7 +235,7 @@ do
 		-m|--modify)
 			MODIFY=true
 			shift
-			FILENAME=$1
+			FILENAME="$1"
 		;;
 
 		-z|--shell)
@@ -244,7 +244,7 @@ do
 		;;
 		-n|--name)
 			shift
-			NAME=$1
+			NAME="$1"
 		;;
 
 		-o|--options)
@@ -258,7 +258,7 @@ do
 
 		-t|--to)
 			shift
-			FILENAME=$1
+			FILENAME="$1"
 		;;
 
 		-u|--usage)
@@ -462,12 +462,12 @@ fi
 if [ ! -z "$FROM" ]
 then
 
-# Catch arguments here if we want them.
-OPTS_FROM_LIST=( $( break_list_by_delim $FROM ) )
-if [ ! -z "$ONLY_OPTIONS" ] 
-then 
-	NO_OPT_FROM_LIST=( $( break_list_by_delim $ONLY_OPTIONS ) )
-fi
+	# Catch arguments here if we want them.
+	OPTS_FROM_LIST=( $( break_list_by_delim "$FROM" ) )
+	if [ ! -z "$ONLY_OPTIONS" ] 
+	then 
+		NO_OPT_FROM_LIST=( $( break_list_by_delim "$ONLY_OPTIONS" ) )
+	fi
 
 
 # Break up arguments before moving further.
@@ -502,7 +502,7 @@ unset COUNTER
 
 
 # Move forward with setting flags.
-ARG_FLAG_SET=( $(echo ${OPTS_FROM_LIST[@]} | tr [a-z] [A-Z] | tr '-' '_') )
+ARG_FLAG_SET=( $(echo ${OPTS_FROM_LIST[@]} | tr '[a-z]' '[A-Z]' | tr '-' '_') )
 COUNTER=0
 LIM=$(( ${#OPTS_FROM_LIST[@]} - 1 ))
 
@@ -525,7 +525,7 @@ then
 		if [[ ${ARG_SUB_SET[$OPTCOUNT]} == true ]]
 		then
 			ARG_FLAG_NAME="${ARG_FLAG_SET[$OPTCOUNT]:1:${#ARG_FLAG_SET[$OPTCOUNT]}}"
-			OPT_NAME="$( echo ${ARG_FLAG_NAME} | tr [A-Z] [a-z] )"
+			OPT_NAME="$( echo ${ARG_FLAG_NAME} | tr '[A-Z]' '[a-z]' )"
 		#	ARG_LETTER=`push_option_alpha ${OPT_NAME:0:1}`
 		#	push_option_alpha ${OPT_NAME:0:1}
 		#	ARG_LETTER="$(get_last_alpha)"
@@ -538,7 +538,7 @@ then
 
 		# Print formatted help without arguments.
 		else
-			OPT_NAME="$( echo ${OPTS_FROM_LIST[$OPTCOUNT]} | tr [A-Z] [a-z] )"
+			OPT_NAME="$( echo ${OPTS_FROM_LIST[$OPTCOUNT]} | tr '[A-Z]' '[a-z]' )"
 #			ARG_LETTER=$(push_option_alpha ${OPT_NAME:0:1})
 	#		push_option_alpha ${OPT_NAME:0:1}
 	#		ARG_LETTER="$(get_last_alpha)"
@@ -620,7 +620,7 @@ then
 		if [[ ${ARG_SUB_SET[$OPTCOUNT]} == true ]]
 		then
 			ARG_FLAG_NAME="${ARG_FLAG_SET[$OPTCOUNT]:1:${#ARG_FLAG_SET[$OPTCOUNT]}}"
-			OPT_NAME="$( echo ${ARG_FLAG_NAME} | tr [A-Z] [a-z] )"
+			OPT_NAME="$( echo ${ARG_FLAG_NAME} | tr '[A-Z]' '[a-z]' | tr '_' '-')"
 
 			# This is ridiculous...
 			#push_option_alpha ${OPT_NAME:0:1}
@@ -634,7 +634,7 @@ then
 			printf -- "--${OPT_NAME})\n"
 
 			# Wants arg or not?
-			printf "         DO_$ARG_FLAG_NAME=true\n"
+			[ ! -z "$DO_LOGIC" ] && printf "         DO_$ARG_FLAG_NAME=true\n"
 			printf "         shift\n"
 			printf "         ${ARG_FLAG_NAME}=\"\$1\"\n" ) >> $FILENAME
 

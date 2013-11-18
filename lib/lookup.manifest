@@ -20,3 +20,4 @@ mega:strings/mega.sh
 
 
 
+check_for_editor:interaction/check_for_editor.sh
