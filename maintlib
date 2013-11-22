@@ -36,6 +36,7 @@ SELF="$(readlink -f $0)"
 
 # Reference a central library
 LIB="${BINDIR}/lib.complete"
+LIBDIR="${BINDIR}/lib"
 source $LIB
 
 # usage() - Show usage message and die with $STATUS
@@ -45,29 +46,33 @@ usage() {
 	[ -  ]
 
 -a | --add <arg>              Add a new library. 
--n | --name <arg>             Add a new library with name <arg> 
+-n | --name <arg>             Add a new library with name <arg> (must be
+                              used in conjunction with the --add flag)
 -r | --remove <arg>           Remove a library. 
 -e | --edit <arg>             Edit a library with an available editor.
 -f | --from <arg>             Extract a library from some code. 
 -c | --class <arg>            Use class name <arg> when modifying libraries.
 -ac | --add-class <arg>       Add a class. 
 -rc | --remove-class <arg>    Remove a class.
--l | --classes                List classes available. 
+-lc | --classes               List classes available. 
 -g | --get <arg>              Add a new library. 
 -q | --query                  Query available libraries.
 -o | --overwrite              Overwrite a class when a library already exists.
 --lookup                      Show the lookup table.
 --lib                         Check summaries and names within bashutil. 
+--listlib                     List out the library directory.
 -v | --verbose                Be verbose in output.
 -h | --help                   Show this help and quit.
 "
    exit $STATUS
 }
 
+
 # Some local functions
 add_to_library(){
 	echo '...'
 }
+
 
 # Get class names.
 get_class_names() {
@@ -94,6 +99,9 @@ locate_lib_name () {
 #------------------------------------------------------
 # search_for() 
 # 
+# Search for a string of text ($1) within a script
+# file, paying attention to syntax rules.
+#
 # With BASH there are a ton of stupid rules to keep
 # in mind.
 # comments (#) for one
@@ -218,82 +226,121 @@ NEWLINE="
 while [ $# -gt 0 ]
 do
    case "$1" in
+		# Add
      -a|--add)
          DO_ADD=true
          shift
          ADD="$1"
       ;;
+
+		# Summary
      -s|--summary)
          shift
          SUMMARY="$1"
 		;;
+
+		# Name
      -n|--name)
          DO_NAME=true
          shift
          NAME="$1"
       ;;
+
+		# Remove
      -r|--remove)
          DO_REMOVE=true
 			DO_FILEMOD=true
          shift
          SELECTION="$1"
       ;;
+
+		# Edit
      -e|--edit)
          DO_EDIT=true
 			DO_FILEMOD=true
          shift
          SELECTION="$1"
       ;;
-#	  -x|--extract)
-#        DO_FROM=true
-#			shift
-#			FEXNAME="$1"
-#	   ;;	
+
+		# From
      -f|--from)
          shift
          FROM="$1"
       ;;
+
+		# ... 
+     -ac|--add-class)
+         shift
+			CLASS_TO_ADD="$1"
+      ;;
+
+		# ...
+     -rc|--remove-class)
+         shift
+         CLASS="$1"
+      ;;
+
+		# Class
      -c|--class)
          shift
          CLASS="$1"
       ;;
-     -ac|--add-class)
-         DO_ADD_CLASS=true
-         shift
-         CLASS_TO_ADD="$1"
+
+		# List classes.
+     -ll|--listlib)
+         DO_LIST_LIB=true
       ;;
-     -rc|--remove-class)  # May not be the greatest of choices...
-         DO_REMOVE_CLASS=true
-         shift
-         CLASS="$1"
+
+		# List classes.
+     -lc|--classes)
+         DO_SHOW_CLASSES=true
       ;;
+
+		# Overwrite
      -o|--overwrite)
          DO_OVERWRITE=true
       ;;
+
+		# Query
      -q|--query)
          DO_QUERY=true
       ;;
+
 		# Grab a library from git repo. 
      -g|--get)
          DO_MERGE=true
       ;;
+
+		# Lookup
      --lookup)
         	DO_SHOW_LOOKUP=true
 		;;
+
+		# Lib
      --lib)
         	DO_SHOW_LIB=true
 		;;
+
+		# Verbose
      -v|--verbose)
         VERBOSE=true
       ;;
+
+		# Help
      -h|--help)
         usage 0
       ;;
+
+		# End of flags
      --) break;;
+
+	   # Die on bad arguments.
      -*)
-      printf "Unknown argument received.\n";
+      printf "Unknown argument received: \"$1\".\n";
       usage 1
      ;;
+
+	   # Die on "solid" arguments.... :D 
      *) break;;
    esac
 shift
@@ -302,6 +349,7 @@ done
 
 # more...
 EDITOR=vi
+
 
 # Evaluate the flags.
 eval_flags
@@ -345,7 +393,8 @@ then
 		SL=$(grep --line-number "$FEXNAME ()" $FROM | awk -F ':' '{ print $1 }')
 		if [ -z "$SL" ] 
 		then 
-			SL=$(grep --line-number "$FEXNAME()" $FROM | awk -F ':' '{ print $1 }')
+			SL=$(grep --line-number "$FEXNAME()" $FROM | \
+				awk -F ':' '{ print $1 }')
 		fi
 
 		# Die if nothing found.
@@ -453,6 +502,12 @@ then
 fi
 
 
+# List lib.
+if [ ! -z $DO_LIST_LIB ]
+then
+	ls $LIBDIR/*
+fi
+
 
 # class
 if [ ! -z $DO_ADD_CLASS ]
@@ -478,12 +533,13 @@ fi
 
 
 # classes
-if [ ! -z $DO_CLASSES ]
+if [ ! -z $DO_SHOW_CLASSES ]
 then
 	# List all the available classes.
   	# grep '#' $LIB_MANIFEST | sed 's/# //'
 	get_class_names
 fi
+
 
 # Directly edit either the lookup or library files.
 [ ! -z $DO_SHOW_LOOKUP ] && $EDITOR $LOOKUP_MANIFEST
