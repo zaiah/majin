@@ -1,0 +1,19 @@
+
+*libs
+id
+location
+name
+class
+description
+dateC
+dateLM
+
+*classes
+id
+name
+description
+
+*links
+id
+seed (usually just one seed)
+file
