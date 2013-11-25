@@ -81,6 +81,15 @@ General Options:
    exit $STATUS
 }
 
+#------------------------------------------------------
+# generate_library_file() 
+# 
+# Generates a file at the top level of some library.
+#-----------------------------------------------------#
+generate_library_file() {
+	# Start an array.
+	echo '...'
+}
 
 # Die if no arguments received.
 [ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
@@ -210,7 +219,7 @@ do
          DO_SECURITY=true
       ;;
 
-     -?|--describe)
+     --describe)
          DO_DESCRIBE=true
          shift
          DESCRIBE="$1"
@@ -832,9 +841,8 @@ then
 	[ -z "$LINK_AT" ] && echo "No directory specified for linking." && exit 1
 	
 	# Libs made with `bashutil` are always going to be under /lib 
-	[[ ! $(basename "$LINK_AT") == "lib" ]] && echo "jimmy!"
-	exit
-
+	[[ ! $(basename "$LINK_AT") == "lib" ]] && LINK_AT="$LINK_AT/lib" 
+	
 	# Create this link directory. 
 	[ ! -d "$LINK_AT" ] && mkdir $MKDIR_FLAGS $LINK_AT
 
@@ -848,6 +856,16 @@ then
 	# Select location from this table.
 	LINK_RESULTS=$(dbm --select 'location' --from libs --where $COMPLETE_OR)
 
+	# A file for library includes...
+	LIB_INC="$LINK_AT/__.sh"
+
+	# Generate an array that will allow one to choose what 
+	# should and should not be included.
+	# (like source lib/*.sh)
+	# (now namespaces are more important than ever...)
+	( printf "%s\n" "#!/bin/bash" 
+	printf "%s\n" "BASHUTIL_LIBS=(" ) > $LIB_INC
+
 	# Craft a query.
 	for FILE_FOUND in ${LINK_RESULTS[@]}
 	do
@@ -857,17 +875,29 @@ then
 		COPIED_LIB="$LINK_AT/$(basename $FILE_FOUND)"
 		if [ -f "$COPIED_LIB" ] 
 		then
-			echo '...'
-			# md5sum $COPIED_LIB	
+			# Get checksum and last modified date of both.
+			# If checksum of COPIED_LIB is different from the original?
+			# Supply overwrite to just blow away whatever's there...
+			# md5sum $COPIED_LIB | awk '{print	$1}'
+			printf 2>/dev/null
 		fi
 
-		# Link.
+
 		# Store what's what lest my location changes for each link.
 		SEED="$(dirname $LINK_AT)"
 		FILE="$(basename $LINK_AT)"
-		dbm --insert-from-mem
-		ln $LN_FLAGS $SRCLIB/$FILE_FOUND $LINK_AT/$(basename $FILE_FOUND)
+		# dbm --insert-from-mem
+		printf "%s" "\t'$(basename $LINK_AT)/$(basename $FILE_FOUND)'" >> $LIB_INC
+
+		# Store the md5sum within the generated library file.
+		# If the two are different, then updating can be automatically done...
+		printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | awk '{print $1}')" >> $LIB_INC
+
+		# Link.
+		ln $LN_FLAGS $SRCLIB/$FILE_FOUND $COPIED_LIB 2>/dev/null
 	done
 
-	# Link what is found.
+	# Complete the generated library file.
+	printf "%s\n" ")" >> $LIB_INC
+	printf "for n in \${BASHUTIL_LIBS[@]}\ndo\n\tsource \"\$n\"\ndone\n" >> $LIB_INC
 fi
