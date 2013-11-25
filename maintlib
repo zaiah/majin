@@ -38,6 +38,7 @@ SELF="$(readlink -f $0)"
 LIB="${BINDIR}/lib.complete"
 LIBDIR="${BINDIR}/lib"
 source $LIB
+DB="$LIBDIR/libs.db"
 
 # usage() - Show usage message and die with $STATUS
 usage() {

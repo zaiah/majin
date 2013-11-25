@@ -1,35 +1,26 @@
 # strings 
-mega:
 break_list_by_delim: Creates an array based on a string containing delimiters.
 break_maps_by_delim: Creates a key to value pair based on a string containing delimiters.
-
 # databases 
 load_from_db_columns: Create a variable in Bash out of each column header in a table and fill it with information found in that column.
 modify_from_db_columns: Load data from database and edit from a temporary file, writing back the results.
 convert: Prepares records to be placed into a SQLite 3 database.
-where: Create a clause.
-
 # math 
-
 # random 
-randomize: Returns a string $1 with its characters in random order.
 randomize_to: Returns a string with characters in random order with length $1.
-
 # integers
-
 # arrays 
 is_element_present_in: Return true or false if an element is found in an array.
-
 # arguments
 eval_flags: Expands flags for commonly used programs based on verbosity settings.
 die_on_improper_type: Exits script if an argument of wrong type is received. 
 is_flag: Return status if $1 is a flag or not
 typecheck: Performs a typecheck on $1
-
 # interaction
+installation:
 check_for_editor:
 create_menu: Creates a menu.
-
 # files
+tmp_file:
 edit_in_place: Opens a temporary file with variables within an editor.
 read_xz: Read a compressed file to stdout as long as it's gz, bz2 or 7z.

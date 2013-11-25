@@ -14,10 +14,6 @@ create_menu:interaction/create_menu.sh
 edit_in_place:files/edit_in_place.sh
 read_xz:files/read_xz.sh
 mega:strings/mega.sh
-
-
-
-
-
-
 check_for_editor:interaction/check_for_editor.sh
+installation:interaction/installation.sh
+tmp_file:files/tmp_file.sh

@@ -41,6 +41,8 @@ usage() {
 	[ -  ]
 
 Library Compile Actions:
+-k | --link-at <arg>          Link what is chosen at a certain directory.
+-k | --link-with <arg>        Link with the <arg> compiled in.
 -w | --with <arg>             Build library with functions listed in <arg> 
 -x | --without <arg>          Build library with functions listed in <arg> 
 -z | --all-libs               Build library with functions listed in <arg> 
@@ -52,7 +54,6 @@ Library Compile Actions:
 -l | --list                   List all available functions. 
 -? | --describe <arg>         Describe function <arg>.
 --specify-with                Use a menu to choose library list.
-
 
 Library Runtime Actions:
 -e | --executables <arg>      Convert names in <arg> to variables that alias
@@ -72,16 +73,6 @@ Library Runtime Actions:
 -u | --security               Generate code to secure a shell script.
 -a | --set-all <arg>          Set all flags that do not require an argument.
                               <arg> refers to library name.
-
-
-Library Macro Flags: 
---databases                   Concatenate only database functions into library.
---arguments                   Concatenate only argument functions into library.
---random                      Concatenate only functions dealing with randomness into a library.
---strings                     Concatenate only string functions into library.
---integers                    Concatenate only integer functions into library.
---math                        Concatenate only math functions into library.
---arrays                      Concatenate only array functions into library. 
 
 General Options:
 -v | --verbose                Be verbose in output.
@@ -114,6 +105,17 @@ do
          DO_SECURITY=true
 			shift
 			LIBNAME="$1"
+		;;
+
+	  -kw|--link-with)
+		  shift
+		  LINK_WITH="$1"
+		;;
+
+	  -k|--link-at)
+		  DO_LINKING=true
+		  shift
+		  LINK_AT="$1"
 		;;
 
 	  -c|--comments)
@@ -215,27 +217,15 @@ do
       ;;
 
 		# Library build functions.
-     --databases)
+     --from-class)
          DO_BUILD[${#DO_BUILD[@]}]="databases"
-      ;;
-     --arguments)
          DO_BUILD[${#DO_BUILD[@]}]="arguments"
-      ;;
-     --random)
          DO_BUILD[${#DO_BUILD[@]}]="random"
-      ;;
-     --strings)
          DO_BUILD[${#DO_BUILD[@]}]="strings"
-      ;;
-     --integers)
          DO_BUILD[${#DO_BUILD[@]}]="integers"
-      ;;
-     --math)
          DO_BUILD[${#DO_BUILD[@]}]="math"
-      ;;
-     --arrays)
          DO_BUILD[${#DO_BUILD[@]}]="arrays"
-		;;
+		;;	
 
 		# General options.
       -v|--verbose)
@@ -265,28 +255,30 @@ eval_flags
 if [ ! -z $DO_LIST ]
 then
 	# Regen doc.
-	while read line
-	do
-		# Save this b/c it's our folder name for different lib functions.
-		if [[ ${line:0:1} == '#' ]] 
-		then
-			printf "\nIn $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:\n"
-			continue
+#	while read line
+#	do
+#		# Save this b/c it's our folder name for different lib functions.
+#		if [[ ${line:0:1} == '#' ]] 
+#		then
+#			printf "\nIn $(echo $line | sed 's/# //' | tr [A-Z] [a-z] ) library:\n"
+#			continue
+#
+#		# Move through blanks.
+#		elif [[ -z "${line}" ]]
+#		then
+#			continue	
+#
+#		# You have hit gold...
+#		else
+#			printf "  $line" | \
+#				sed 's/\r//' | \
+#				awk -F ':' '{print $1 ":          "}' | \
+#				head -c 25 
+#			printf "$line" | awk -F ':' '{print $2}' 
+#		fi
+#	done < $LIB_MANIFEST
 
-		# Move through blanks.
-		elif [[ -z "${line}" ]]
-		then
-			continue	
-
-		# You have hit gold...
-		else
-			printf "  $line" | \
-				sed 's/\r//' | \
-				awk -F ':' '{print $1 ":          "}' | \
-				head -c 25 
-			printf "$line" | awk -F ':' '{print $2}' 
-		fi
-	done < $LIB_MANIFEST
+	dbm --select 'name' --from libs
 fi
 
 
@@ -830,4 +822,52 @@ then
 			fi
 		fi
 	done < $LOOKUP_MANIFEST
+fi
+
+
+# include all the libraries
+if [ ! -z $DO_LINKING ]
+then
+	# No directory specified. 
+	[ -z "$LINK_AT" ] && echo "No directory specified for linking." && exit 1
+	
+	# Libs made with `bashutil` are always going to be under /lib 
+	[[ ! $(basename "$LINK_AT") == "lib" ]] && echo "jimmy!"
+	exit
+
+	# Create this link directory. 
+	[ ! -d "$LINK_AT" ] && mkdir $MKDIR_FLAGS $LINK_AT
+
+	# Craft an OR query 
+	for LIB in $(break_list_by_delim $LINK_WITH)
+	do
+		[ -z "$COMPLETE_OR" ] && COMPLETE_OR="name=$LIB" && continue
+		COMPLETE_OR="${COMPLETE_OR} --or name=$LIB"
+	done
+
+	# Select location from this table.
+	LINK_RESULTS=$(dbm --select 'location' --from libs --where $COMPLETE_OR)
+
+	# Craft a query.
+	for FILE_FOUND in ${LINK_RESULTS[@]}
+	do
+		# Checksum of current file.
+		# md5sum $COPIED_LIB
+
+		COPIED_LIB="$LINK_AT/$(basename $FILE_FOUND)"
+		if [ -f "$COPIED_LIB" ] 
+		then
+			echo '...'
+			# md5sum $COPIED_LIB	
+		fi
+
+		# Link.
+		# Store what's what lest my location changes for each link.
+		SEED="$(dirname $LINK_AT)"
+		FILE="$(basename $LINK_AT)"
+		dbm --insert-from-mem
+		ln $LN_FLAGS $SRCLIB/$FILE_FOUND $LINK_AT/$(basename $FILE_FOUND)
+	done
+
+	# Link what is found.
 fi
