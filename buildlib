@@ -42,7 +42,7 @@ usage() {
 
 Library Compile Actions:
 -k | --link-at <arg>          Link what is chosen at a certain directory.
--k | --link-with <arg>        Link with the <arg> compiled in.
+-kw| --link-with <arg>        Link with the <arg> compiled in.
 -w | --with <arg>             Build library with functions listed in <arg> 
 -x | --without <arg>          Build library with functions listed in <arg> 
 -z | --all-libs               Build library with functions listed in <arg> 
