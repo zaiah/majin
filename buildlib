@@ -467,7 +467,7 @@ then
 			DIE_ON_DEPEDENCY_LACK=true
 			;;
 		esac
-		shift
+		s\hift
 	done\n\n"
 
 	# Verbose eval.
@@ -887,17 +887,19 @@ then
 		SEED="$(dirname $LINK_AT)"
 		FILE="$(basename $LINK_AT)"
 		# dbm --insert-from-mem
-		printf "%s" "\t'$(basename $LINK_AT)/$(basename $FILE_FOUND)'" >> $LIB_INC
+		printf "\t%s" "'$(basename $LINK_AT)/$(basename $FILE_FOUND)'" >> $LIB_INC
 
 		# Store the md5sum within the generated library file.
 		# If the two are different, then updating can be automatically done...
 		printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | awk '{print $1}')" >> $LIB_INC
 
 		# Link.
+		[ ! -z $VERBOSE ] && LN_FLAGS="-v" || LN_FLAGS=""
 		ln $LN_FLAGS $SRCLIB/$FILE_FOUND $COPIED_LIB 2>/dev/null
+		unset LN_FLAGS
 	done
 
 	# Complete the generated library file.
 	printf "%s\n" ")" >> $LIB_INC
-	printf "for n in \${BASHUTIL_LIBS[@]}\ndo\n\tsource \"\$n\"\ndone\n" >> $LIB_INC
+	printf "for __MY_LIB__ in \${BASHUTIL_LIBS[@]}\ndo\n\tsource \"\$__MY_LIB__\"\ndone\n" >> $LIB_INC
 fi
