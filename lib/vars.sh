@@ -1,5 +1,5 @@
 # Manifests 
-SRCLIB="${BINDIR}/bashutil_lib"
+SRCLIB="${BINDIR}/bulib"
 LIB_MANIFEST="${SRCLIB}/gen.manifest"
 LOOKUP_MANIFEST="${SRCLIB}/lookup.manifest"
 
