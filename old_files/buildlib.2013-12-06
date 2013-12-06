@@ -65,6 +65,11 @@ Library Runtime Actions:
 -d | --depcheck               Generate code to run a dependency check.
 -s | --standard_dirs <arg>    Convert names in <arg> to variables that 
                               reference your program's common directories.
+-b | --db                     Generate code to create a database. 
+-t | --initial-run            Generate code to run preliminary checks in a 
+                              shell script.
+-y | --initial-install <dir>  Generate code to install a shell script.
+                              ( /usr/bin, /usr/local/bin or $HOME/bin )
 -u | --security               Generate code to secure a shell script.
 -a | --set-all <arg>          Set all flags that do not require an argument.
                               <arg> refers to library name.
@@ -284,61 +289,55 @@ fi
 
 # executables
 # Going to make a list of these...
-[ ! -z $DO_EXECUTABLES ] && {
+if [ ! -z $DO_EXECUTABLES ]
+then
 	# Die on no argument received.
-	[ -z "$EXECUTABLES" ] && {
-		printf "%s\n" "Nothing supplied to --executables flag!" 
-		usage 1
-	}
-
-	# Set up array of execs from CLI args.
+	[ -z "$EXECUTABLES" ] && echo "Nothing supplied to --executables flag!" && usage 1
   	EXECUTABLES="$(break_list_by_delim "$EXECUTABLES")"
 
 	# Don't want to run a find everytime for certain... 
 	# printf 'dep_locate(){\n\tMOV_CHECK=( which, locate, find )\n\t'
 	# printf 
-	# dep_locate is going to point to which.  
-	# If there is no which you want this script to die.
+	# dep_locate is going to point to which.  If there is no which you want this script to die.
 
-	# Generate execs list
-	( 
-		# Comments 
-		[ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
+	# Comments 
+	( [ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
 
-		# Have the script run a check for each.
-		for ETERM in ${EXECUTABLES[@]}
-		do
-			printf "${ETERM}=" | tr '[a-z]' '[A-Z]'
-			if [[ ! $ETERM == "sqlite" ]] && [[ ! $ETERM == "sqlite3" ]] 
-			then 
-				printf "\"\$(which ${ETERM} 2>/dev/null)\"\n" 
-			else
-				printf "\"\$(which sqlite3 2>/dev/null)\"\n"
-			fi
-		done	
+	# Have the script run a check for each.
+	for ETERM in ${EXECUTABLES[@]}
+	do
+		printf "${ETERM}=" | tr '[a-z]' '[A-Z]'
+		if [[ ! $ETERM == "sqlite" ]] && [[ ! $ETERM == "sqlite3" ]] 
+		then 
+			printf "\"\$(which ${ETERM} 2>/dev/null)\"\n" 
+		else
+			printf "\"\$(which sqlite3 2>/dev/null)\"\n"
+		fi
+	done	
 
-		# Have the script run a check for each.
-		printf "DEPS=( "
-		for ETERM in ${EXECUTABLES[@]}
-		do
-			printf "\"\$${ETERM}\" " | tr '[a-z]' '[A-Z]'
-		done
-		printf ")\n\n" 
-	) >> $FILENAME	
-}
+	# Have the script run a check for each.
+	printf "DEPS=( "
+	for ETERM in ${EXECUTABLES[@]}
+	do
+		printf "\"\$${ETERM}\" " | tr '[a-z]' '[A-Z]'
+	done
+	printf ")\n\n" ) >> $FILENAME	
+fi
 
 
 # program directory
-[ ! -z "$LIBNAME" ] && {
+if [ ! -z "$LIBNAME" ]
+then
 	# Always do the first few directories.
 	( [ ! -z "$DO_COMMENTS" ] && printf "# Library and directory name\n"
 	printf "LIBNAME=\"${LIBNAME}\"\n"
 	printf "PROGRAM_DIR=\"\$HOME/.\${LIBNAME}\"\n" ) >> $FILENAME
-}
+fi
 
 
 # create standard directories 
-[ ! -z $DO_STANDARD_DIRS ] && {
+if [ ! -z $DO_STANDARD_DIRS ]
+then
 	# Everything else will break without some library name.
 	[ -z "$LIBNAME" ] && echo "Must have a library name!" >> $FILEERR && usage 1
 
@@ -366,11 +365,12 @@ fi
 		printf "\"\${PROGRAM_DIR}/${SDIR}\" "
 	done	
 	printf ")\n\n" ) >>  $FILENAME
-}
+fi
 
 
 # Create static variables. 
-[ ! -z $DO_STATIC ] && {
+if [ ! -z $DO_STATIC ]
+then
 	# Die on no argument received.
 	[ -z "$STATIC" ] && echo "Nothing supplied to --static flag!" && usage 1
   	STATIC_ARR="$(break_list_by_delim "$STATIC")"
@@ -392,11 +392,20 @@ fi
 			printf "${SVAR}=\n" | tr '[a-z]' '[A-Z]'
 		fi
 	done ) >> $FILENAME	
-}
+fi
+
+
+# db
+if [ ! -z $DO_DB ]
+then
+ 	( printf "DB=\"\${PROGRAM_DIR}/\${LIBNAME}.db\"\n"  
+	printf "BIN_SQL_DIR=\"\${BINDIR}/sql\"\n\n"  ) >> $FILENAME
+fi
 
 
 # Add some function bodies.
-[ ! -z $DO_FUNCTIONS ] && {
+if [ ! -z $DO_FUNCTIONS ]
+then
 	# Comments.
 	( [ ! -z "$DO_COMMENTS" ] && printf "# Functions\n"
 
@@ -414,15 +423,271 @@ fi
 		else
 			# If not, then just make a spot for it.
 			printf "${FVAR}() {\n" 
-			printf "   printf '' > /dev/null"
+			printf "   echo '...'"
 			printf "\n}\n\n" 
 		fi
 	done ) >> $FILENAME
-}
+fi
+
+
+# initial_run
+if [ ! -z $DO_INITIAL_RUN ]
+then
+   ( 
+	[ ! -z "$DO_COMMENTS" ] && printf "# Initial deployment.\n" 
+	printf "initial_deploy() {\n" 
+
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Some command handling.\n" 
+
+	# Add some logic.
+	printf "while [ \$# -gt 0 ]
+	do
+		case \"\$1\" in
+			-n|--die-on-dependency-lack)
+			DIE_ON_DEPEDENCY_LACK=true
+			;;
+		esac
+		s\hift
+	done\n\n"
+
+	# Verbose eval.
+	printf "\tif [ ! -z \$VERBOSE ] 
+	then
+		ID_MKDIR_FLAGS='-pv'	
+	else
+		ID_MKDIR_FLAGS='-p'	
+	fi\n"
+
+	if [ ! -z "$EXECUTABLES" ]
+	then
+		# Comments 
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Run basic dependency checks.\n" 
+		printf "\tfor E in \${DEPS[@]}\n\tdo " 
+
+		printf "
+		[ ! -z \$VERBOSE ] && echo 'Checking dependencies...\n'
+		if [ -z \"\$E\" ] || [ ! -x \"\$E\" ] 
+		then
+			echo \"\$E is either not on this system or is not executable.\"
+			[ ! -z \$DIE_ON_DEPENDENCY_LACK ] && exit 1
+		else
+			[ ! -z \$VERBOSE ] && echo \"\$(basename \$E) is present at: \$E.\"
+		fi
+	done\n"
+	fi
+
+	# Comments 
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Create all directories in \$HOST_DIRS" 
+	
+	printf "
+	for D in \${HOST_DIRS[@]}
+	do
+		mkdir \$ID_MKDIR_FLAGS \"\$D\"
+	done" 
+	
+	
+	# Comments 
+	if [ ! -z $DO_DB ]
+	then
+		[ ! -z "$DO_COMMENTS" ] && printf "\n\n\t# Create tables" 
+
+		printf "	
+	for SD in \$( ls \$BIN_SQL_DIR )
+	do
+		[ ! -z \$VERBOSE ] && echo \"Loading tables in: \${BIN_SQL_DIR}/\$SD\"
+		\$SQLITE \$DB < \${BIN_SQL_DIR}/\$SD
+	done"
+	fi
+
+	printf '\n}\n'
+	) >> $FILENAME
+fi
+
+
+# initial_install
+if [ ! -z $DO_INITIAL_INSTALL ]
+then
+	(
+	# Install somewhere.
+	if [ ! -z "$INITIAL_INSTALL_DIR" ]
+	then 
+		if [ ! -z "$DO_COMMENTS" ] 
+		then
+			printf "\n# Install program where?\n" 
+			printf "# ('/usr/bin', '/usr/local/bin', '\$HOME/bin' or another directory entirely.)" 
+		fi
+
+		printf "\nINITIAL_INSTALL_DIR=\"${INITIAL_INSTALL_DIR}\"\n"
+	fi
+	
+	# Create the initial_install function
+	printf "\ninitial_install() {\n"
+	
+	# Start moving through the function.
+	[ ! -z "$DO_COMMENTS" ] && printf "\n# Initial install of program." 
+
+	# Keep track of install directories.
+	printf "\n\tSW_INSTALL=\"\${PROGRAM_DIR}/INSTALL\""
+
+	# Catch args, there are some...
+	printf "\n\t# Need some flags to catch install dir, arguments for what should be linked...
+	while [ \$# -gt 0 ]
+	do
+		case "\$1" in
+			--to) 
+				shift
+				INITIAL_INSTALL_DIR="\$1"
+			;;
+			--these) 
+				shift
+				LN_ARGS="\$1"
+			;;
+			-*)
+			break
+			;;
+		esac
+		shift
+	done\n"
+
+	# Be sane about evaluation.
+	# If first arg is '/', then it's a dir.
+	# If first arg is '/', then it's a dir.
+
+	# Verbosity
+	[ ! -z "$DO_COMMENTS" ] && printf "\t# Verbosity flags.\n"
+	printf "\tif [ ! -z \$VERBOSE ] 
+	then
+		SW_LN_FLAGS='-sv'	
+		SW_MKDIR_FLAGS='-pv'	
+		SW_CHMOD_FLAGS='--verbose'	
+	else
+		SW_LN_FLAGS='-s'	
+		SW_MKDIR_FLAGS='-p'	
+		SW_CHMOD_FLAGS='--'	
+	fi\n"
+
+	# This needs to be run a little sooner.
+	# Like at the deploy step.
+	# Though the check still needs to be run here to make sure we can create
+	# an uninstall routine.
+	printf "
+	if [ ! -d \"\$PROGRAM_DIR\" ] 
+	then
+		echo \"Program directory does not exist.\" 
+		echo \"Exiting...\" 
+		exit 1
+	elif [ -d \"\$PROGRAM_DIR\" ] && [ ! -O \"\$PROGRAM_DIR\" ] 
+	then
+		echo \"Program directory is not writeable.  \"
+		echo \"Exiting...\" 
+		exit 1
+	fi\n"
+	
+	# Set an initial install directory if not set yet. 
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Set initial dir if not set.\n"
+	printf "\tINITIAL_INSTALL_DIR=\"\${INITIAL_INSTALL_DIR:-'/usr/local/bin'}\"\n"
+
+
+	# Check if the current user has write access or not.
+	# Uninstall has to work here.
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Die on no permissions if INITIAL_INSTALL_DIR is relative to /."
+
+	printf "
+	if [ -d \"\$INITIAL_INSTALL_DIR\" ] && [ ! -O \"\$INITIAL_INSTALL_DIR\" ] 
+	then
+		echo \"Install directory is not writeable.  Exiting...\" 
+		exit 1
+	fi\n"
+
+
+	# Assume
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Assume this directory could be impractically long."
+
+	printf "
+	if [ ! -d \"\$INITIAL_INSTALL_DIR\" ] 
+	then
+		mkdir \$SW_MKDIR_FLAGS \$INITIAL_INSTALL_DIR 2>/dev/null || SW_MKDIR_FAIL=true
+		if [ ! -z \$SW_MKDIR_FAIL ] 
+		then 
+			echo \"Could not create \$INITIAL_INSTALL_DIR.  Exiting...\" 
+			exit 1
+		fi
+	fi\n"
+
+
+	# Do some more more magic.	
+	[ ! -z "$DO_COMMENTS" ] && printf "\n\t# Check for what type of file exists in \$BINDIR" 
+
+	printf "\n\tSW_INSTALLS=( \$(printf \$LN_ARGS | sed 's/,/ /g') )
+	declare -a SW_LOCATIONS
+	for FILE in \${SW_INSTALLS[@]}
+	do
+		# If a shell script, did we use an extension? (goal is to have no .sh in /bin)
+		if [ -f \"\${BINDIR}/\${FILE}.sh\" ] 
+		then 
+			FILE=\"\${BINDIR}/\${FILE}.sh\" 
+		elif [ -f \"\${BINDIR}/\${FILE}\" ] 
+		then
+			FILE=\"\${BINDIR}/\${FILE}\" 
+		fi
+
+
+		# Link 
+		LNFILE=\"\$(basename \${FILE%%.sh})\" 
+
+		# Quick test.
+		if [ -L \"\$LNFILE\" ] 
+		then 
+			echo \"\${PROGRAM} already seems to be installed on this machine.\"
+			echo \"You'll need to uninstall or remove those links first.\"
+			exit
+		fi
+
+
+		# Set x bit, and link.
+		[ ! -x \"\${FILE}\" ] && chmod \$SW_CHMOD_FLAGS 744 \${FILE}
+		ln \$SW_LN_FLAGS \${FILE} \${INITIAL_INSTALL_DIR}/\$LNFILE
+
+
+		# Save the software install location to a file.
+		echo \"\${INITIAL_INSTALL_DIR}/\$LNFILE\" >> \$SW_INSTALL
+	done
+}\n"
+
+
+	# This can be made to go into whatever as long as its parsed.
+	# Load each var to memory and just save the results.
+	[ ! -z "$DO_COMMENTS" ] && printf "\n# For what install would be complete without an uninstall?."
+
+	# Add uninstall() function.
+	printf "\nuninstall() {
+	if [ ! -z \$VERBOSE ] 
+	then
+		UN_RM_FLAGS='-v --'	
+	else
+		UN_RM_FLAGS='--'	
+	fi
+
+	# Stop on problems accessing our install file (like it hasn't been created.)
+	[ ! -f \$SW_INSTALL ] && echo \"Can't access INSTALL file.\" && exit 1
+	while read line
+	do
+		rm \$UN_RM_FLAGS \$line
+	done < \$SW_INSTALL
+
+	# Trash the file.
+	rm \$UN_RM_FLAGS \$SW_INSTALL
+}\n"
+
+	# total_uninstall?
+
+	) >> $FILENAME
+fi
 
 
 # security
-[ ! -z $DO_SECURITY ] && {
+if [ ! -z $DO_SECURITY ]
+then
 	( printf '\n' >> $FILENAME
    # Set the right internal field seperator for command line args. 
 	[ ! -z $DO_COMMENTS ] && printf "# Set the right internal field seperator for command line args.\n" 
@@ -437,11 +702,12 @@ fi
 	[ ! -z $DO_COMMENTS ] && printf "# Set a normal path.\n" >> $FILENAME
 	printf 'PATH="/usr/local/bin:/bin:/usr/bin:/usr/sbin:/usr/local/sbin"\n' 
 	printf 'export PATH\n\n' ) >> $FILENAME
-}
+fi
 
 
 # with
-[ ! -z $DO_WITH ] && {
+if [ ! -z $DO_WITH ]
+then
 	# specify_with
 	if [ ! -z $DO_SPECIFY_WITH ]
 	then
@@ -478,12 +744,13 @@ fi
 			printf "\n" ) >> $FILENAME
 		fi	
 	done
-}
+fi
 
 
 # indiv groups
 # I can save many lines with this...
-[ ! -z "$DO_BUILD" ] && {
+if [ ! -z "$DO_BUILD" ]
+then
 	for BUILD_CHOICE in ${DO_BUILD[@]}
 	do
 		for FR in $( ls "$SRCLIB/$BUILD_CHOICE" ) 
@@ -512,11 +779,12 @@ fi
 			fi
 		done
 	done
-}
+fi
 
 
 # include all the libraries
-[ ! -z $DO_INC_ALL ] && {
+if [ ! -z $DO_INC_ALL ]
+then
 	while read line
 	do
 		# Save this b/c it's our folder name for different lib functions.
@@ -543,11 +811,12 @@ fi
 			fi
 		fi
 	done < $LOOKUP_MANIFEST
-}
+fi
 
 
 # include all the libraries
-[ ! -z $DO_LINKING ] && {
+if [ ! -z $DO_LINKING ]
+then
 	# No directory specified. 
 	[ -z "$LINK_AT" ] && echo "No directory specified for linking." && exit 1
 	
@@ -556,7 +825,7 @@ fi
 	
 	# Create this link directory. 
 	[ ! -d "$LINK_AT" ] && mkdir $MKDIR_FLAGS $LINK_AT
-
+read
 	# Craft an OR query 
 	for LIB in $(break_list_by_delim $LINK_WITH)
 	do
@@ -566,6 +835,7 @@ fi
 
 	# Select location from this table.
 	LINK_RESULTS=$(dbm --select 'location' --from libs --where $COMPLETE_OR)
+read
 
 	# A file for library includes...
 	LIB_INC="$LINK_AT/__.sh"
@@ -574,59 +844,43 @@ fi
 	# should and should not be included.
 	# (like source lib/*.sh)
 	# (now namespaces are more important than ever...)
-	( 
-		printf "%s\n" "#!/bin/bash" 
-		printf "%s\n\n" '__BULIBSRC__="$(dirname $(readlink -f 0))/lib"'
-		printf "# Hold library names and checksums.\n"
-		printf "%s\n" "BASHUTIL_LIBS=(" 
-	
+	( printf "%s\n" "#!/bin/bash" 
+	printf "%s\n" "BASHUTIL_LIBS=(" ) > $LIB_INC
 
-		# Craft a query.
-		for FILE_FOUND in ${LINK_RESULTS[@]}
-		do
-			# Checksum of current file.
-			# md5sum $COPIED_LIB
+	# Craft a query.
+	for FILE_FOUND in ${LINK_RESULTS[@]}
+	do
+		# Checksum of current file.
+		# md5sum $COPIED_LIB
 
-			COPIED_LIB="$LINK_AT/$(basename $FILE_FOUND)"
-			if [ -f "$COPIED_LIB" ] 
-			then
-				# Get checksum and last modified date of both.
-				# If checksum of COPIED_LIB is different from the original?
-				# Supply overwrite to just blow away whatever's there...
-				# md5sum $COPIED_LIB | awk '{print	$1}'
-				printf 2>/dev/null
-			fi
+		COPIED_LIB="$LINK_AT/$(basename $FILE_FOUND)"
+		if [ -f "$COPIED_LIB" ] 
+		then
+			# Get checksum and last modified date of both.
+			# If checksum of COPIED_LIB is different from the original?
+			# Supply overwrite to just blow away whatever's there...
+			# md5sum $COPIED_LIB | awk '{print	$1}'
+			printf 2>/dev/null
+		fi
 
 
-			# Store what's what lest my location changes for each link.
-			SEED="$(dirname $LINK_AT)"
-			FILE="$(basename $LINK_AT)"
-			# dbm --insert-from-mem
-			printf "\t%s" "\"$(basename $FILE_FOUND)\"" # >> $LIB_INC
+		# Store what's what lest my location changes for each link.
+		SEED="$(dirname $LINK_AT)"
+		FILE="$(basename $LINK_AT)"
+		# dbm --insert-from-mem
+		printf "\t%s" "'$(basename $LINK_AT)/$(basename $FILE_FOUND)'" >> $LIB_INC
 
-			# Store the md5sum within the generated library file.
-			# If the two are different, then updating can be automatically done...
-			printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | awk '{print $1}')" # >> $LIB_INC
+		# Store the md5sum within the generated library file.
+		# If the two are different, then updating can be automatically done...
+		printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | awk '{print $1}')" >> $LIB_INC
 
-			# Link.
-			[ ! -z $VERBOSE ] && LN_FLAGS="-v" || LN_FLAGS=""
-			ln $LN_FLAGS $SRCLIB/$FILE_FOUND $COPIED_LIB 2>/dev/null
-			unset LN_FLAGS
-		done
+		# Link.
+		[ ! -z $VERBOSE ] && LN_FLAGS="-v" || LN_FLAGS=""
+		ln $LN_FLAGS $SRCLIB/$FILE_FOUND $COPIED_LIB 2>/dev/null
+		unset LN_FLAGS
+	done
 
-		# Complete the generated library file.
-		printf "%s\n\n" ")" 
-		printf "# Load each library.\n"
-		printf "for __MY_LIB__ in \${BASHUTIL_LIBS[@]}\n"
-		printf "do\n"
-		printf "\tsource \"\$__BULIBSRC__/\$__MY_LIB__\"\n"
-		printf "done\n" 
-	) > $LIB_INC
-
-	# Test it.
-	tmp_file -n TESTLIB 
-	printf "$(readlink -f $LINK_AT)\n" > /dev/stderr
-	printf "source $(readlink -f $LINK_AT)/__.sh\n" > $TESTLIB
-	bash $TESTLIB
-	tmp_file -w
-}
+	# Complete the generated library file.
+	printf "%s\n" ")" >> $LIB_INC
+	printf "for __MY_LIB__ in \${BASHUTIL_LIBS[@]}\ndo\n\tsource \"\$__MY_LIB__\"\ndone\n" >> $LIB_INC
+fi

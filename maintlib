@@ -34,16 +34,18 @@ PROGRAM="maintlib"
 BINDIR="$(dirname "$(readlink -f $0)")"
 SELF="$(readlink -f $0)"
 
+
 # Reference a central library
 LIBDIR="${BINDIR}/bulib"
 LIB="${BINDIR}/lib/__.sh"
 source $LIB
 DB="$LIBDIR/libs.db"
 
+
 # usage() - Show usage message and die with $STATUS
 usage() {
    STATUS="${1:-0}"
-   echo "Usage: ./${PROGRAM}
+   printf "Usage: ./${PROGRAM}
 	[ -  ]
 
 -a | --add <arg>              Add a new library. 
@@ -71,13 +73,14 @@ usage() {
 
 # Some local functions
 add_to_library(){
-	echo '...'
+	printf '...'
 }
 
 
 # Get class names.
 get_class_names() {
-  	grep '#' $LIB_MANIFEST | sed 's/# //'
+#  	grep '#' $LIB_MANIFEST | sed 's/# //'
+	dbm --select-all
 }
 
 
@@ -198,20 +201,20 @@ NEWLINE="
 		# If you find it, great!
 		if [[ $CHAR_1 == $__FIND__ ]] 
 		then
-	#		echo ${__BLOCK__:$(( $__CHAR__ - 10  )):10} > /dev/stderr
-	#		echo s $IN_STR > /dev/stderr
-	#		echo c $IN_COMM > /dev/stderr
+	#		printf ${__BLOCK__:$(( $__CHAR__ - 10  )):10} > /dev/stderr
+	#		printf s $IN_STR > /dev/stderr
+	#		printf c $IN_COMM > /dev/stderr
 			if [ $IN_STR == true ] || [ $IN_COMM == true ] 
 			then 
 				continue 
-#				echo $__FIND__
+#				printf $__FIND__
 			fi
-			echo $__CHAR__
+			printf $__CHAR__
 			break
 		fi
 	done
 
-#			echo "Found '$__FIND__' at $__CHAR__"
+#			printf "Found '$__FIND__' at $__CHAR__"
 	exit
 }
 
@@ -219,6 +222,9 @@ NEWLINE="
 # Regenerate entire library.
 # after adding new names.
 # You can ...
+
+get_class_names
+exit
 
 # Die if no arguments received.
 [ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
@@ -359,11 +365,15 @@ eval_flags
 # add
 if [ ! -z $DO_ADD ] || [ ! -z $DO_FROM ]
 then
+	# Set up the table
+	TABLE="libs"
+
 	# Class?
 	if [ -z "$CLASS" ] 
 	then 
-		echo "Can't add a library without some sort of general classification."
-		echo "(Try the --class flag, or use --classes for a list of available classes.)"
+		printf "Can't add a library without some sort of general classification."
+		printf "(Try the --class flag, or use --classes for a " 
+		printf "list of available classes.)"
 		usage 1
 
 	# Check that the classname is valid.
@@ -372,8 +382,8 @@ then
 		CLASS_NAME_ARR="$(get_class_names | tr [A-Z] [a-z])"
 		if [[ $(is_element_present_in CLASS_NAME_ARR $CLASS) == 'false' ]]
 		then
-			echo 'This class does not exist already.'
-			echo 'Please use the -ac option to add a record of it.'
+			printf 'This class does not exist already.'
+			printf 'Please use the -ac option to add a record of it.'
 		fi
 	fi
 
@@ -381,10 +391,10 @@ then
 	if [ ! -z $DO_FROM ] 
 	then
 		# Did you ask for anything to extract?
-		[ -z "$FEXNAME" ] && echo "Nohting to extract." && usage 1
+		[ -z "$FEXNAME" ] && printf "Nohting to extract." && usage 1
 
 		# Does the file actually exist?
-		[ ! -f "$FROM" ] && echo "Can't find file $FROM." && usage 1
+		[ ! -f "$FROM" ] && printf "Can't find file $FROM." && usage 1
 
 		# Set a name.
 		[ -z "$NAME" ] && NAME="$FEXNAME"
@@ -423,8 +433,8 @@ then
 	# Did the user supply any arugments? 
 	if [ -z "$NAME" ] && [ -z "$ADD" ] 
 	then
-		echo "Neither --name or <arg> within --add was supplied."
-		echo "Giving up..."
+		printf "Neither --name or <arg> within --add was supplied."
+		printf "Giving up..."
 		usage 1
 	fi
 
@@ -440,25 +450,35 @@ then
 	if [[ ! "$(grep "${__LIBNAME__%%.sh}" $LIB_MANIFEST)" == "" ]] && \
 		[ -z $DO_OVERWRITE ]
 	then
-		echo "This library is already in your bashutil toolkit."
+		printf "This library is already in your bashutil toolkit."
 		printf "Please either use the --extract flag to update the library"
 		printf " or the --overwrite flag to wipe the original.\n"
 		exit 1
 	fi
 
 	# Copying with the correct name if I've asked for one.
-	[ -f "$ADD" ] && cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
+#	[ -f "$ADD" ] && cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
 
 	# Or copy the buffer...
-	[ ! -z "$BUFFER" ] && printf "%s" "$BUFFER" >> $SRCLIB/$CLASS/$__LIBFILE__ 
+#	[ ! -z "$BUFFER" ] && printf "%s" "$BUFFER" >> $SRCLIB/$CLASS/$__LIBFILE__ 
+
+	# Add to database.
+	LOCATION=
+	NAME=
+	CLASS=
+	CHECKSUM=
+	DESCRIPTION=
+	DATE_CREATED="$(date +%s)"
+	DATE_LAST_MODIFIED="$(date +%s)"
+
 
 	# Add blank line and add entry to manifest.
-	LN=$(grep --line-number "# $CLASS" $LIB_MANIFEST | awk -F ':' '{print $1}')
-	sed -i ${LN}G $LIB_MANIFEST 
-	sed -i "$(( $LN + 1 ))s#.*#"${__LIBNAME__%%.?h}:$SUMMARY"#" $LIB_MANIFEST
+#	LN=$(grep --line-number "# $CLASS" $LIB_MANIFEST | awk -F ':' '{print $1}')
+#	sed -i ${LN}G $LIB_MANIFEST 
+#	sed -i "$(( $LN + 1 ))s#.*#"${__LIBNAME__%%.?h}:$SUMMARY"#" $LIB_MANIFEST
 	
 	# Then add to lookup file.
-	echo "${__LIBNAME__%%.?h}:$CLASS/$__LIBFILE__" >> $LOOKUP_MANIFEST
+	# printf "${__LIBNAME__%%.?h}:$CLASS/$__LIBFILE__" >> $LOOKUP_MANIFEST
 fi
 
 
@@ -474,7 +494,7 @@ then
 	# Trying to do more than one?
 	if [ $__FILECT__ -gt 1 ]
 	then
-		echo "There are too many files matching."
+		printf "There are too many files matching."
 		exit 1
 	fi
 
@@ -517,7 +537,7 @@ then
 	CLASS_NAME_ARR="$(get_class_names | tr [A-Z] [a-z])"
 	if [[ $(is_element_present_in CLASS_NAME_ARR "$CLASS_TO_ADD") == 'true' ]]
 	then
-		echo 'This class already exists.'
+		printf 'This class already exists.'
 		exit 1
 	fi
 
@@ -529,7 +549,7 @@ fi
 # Class removal
 if [ ! -z $DO_REMOVE_CLASS ]
 then
-	echo '...'
+	printf '...'
 fi
 
 
@@ -546,5 +566,5 @@ fi
 [ ! -z $DO_SHOW_LOOKUP ] && $EDITOR $LOOKUP_MANIFEST
 [ ! -z $DO_SHOW_LIB ] && $EDITOR $LIB_MANIFEST
 
-[ ! -z $DO_QUERY ] && echo "Not done..."
-[ ! -z $DO_MERGE ] && echo "Not done..."
+[ ! -z $DO_QUERY ] && printf "Not done..."
+[ ! -z $DO_MERGE ] && printf "Not done..."

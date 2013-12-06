@@ -1,3 +1,33 @@
+#-----------------------------------------------------#
+# db-minishell
+#
+# Manages simple SQL queries via Bash.
+#-----------------------------------------------------#
+#-----------------------------------------------------#
+# ---------
+# Licensing
+# ---------
+# 
+# Copyright (c) 2013 Vokayent
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#-----------------------------------------------------#
 dbm() {
 	# Enable library.
 	DO_LIBRARIFY=true
@@ -868,6 +898,36 @@ dbm() {
 	}
 	
 	
+	# Die if no arguments received.
+	if [ -z $DO_LIBRARIFY ]
+	then
+		# Define proper exit command.
+		__EXIT__="usage"
+	
+		# This will kill ksh
+		[ -z "$BASH_ARGV" ] && {
+			printf "Nothing to do\n" 
+			$__EXIT__ 1
+		}
+	
+	else
+		# Define proper exit command.
+		__EXIT__="exit"
+	
+		# Exit if no args given to library.
+		[ $# -le 0 ] && $__EXIT__ 1	
+	
+		# If SQLite has not previously been defined, define it.
+		[ -z "$__SQLITE__" ] && __SQLITE__="$(which sqlite3 2>/dev/null)" 
+	
+		# Use something as a log file.
+		LOGFILE="/dev/stderr"
+	fi
+	
+	# Arrays
+	declare -a WHERE_CLAUSE 
+	declare -a NOT_CLAUSE 
+	declare -a OR_X_AND			# Is it an OR or AND clause?
 	# Process options.
 	while [ $# -gt 0 ]
 	do
@@ -901,6 +961,12 @@ dbm() {
 				DO_SELECT=true
 				shift
 				SELECT="$1"
+			;;
+	
+			--select-all)
+				DO_SEND_QUERY=true
+				DO_SELECT=true
+				SELECT="*"
 			;;
 	
 			-f|--from)
@@ -1048,12 +1114,12 @@ dbm() {
 	if [ ! -z $DO_GET_COLUMN_TYPES ]
 	then
 		[ -z "${__TABLE}" ] && echo "No table to operate on!" && $__EXIT__ 1
-		$SQLITE $DB ".schema ${__TABLE}"
+		$__SQLITE__ $DB ".schema ${__TABLE}"
 	fi
 	
 	
 	# Retrieve tables. 
-	[ ! -z $DO_SHOW_TABLES ] && $SQLITE $DB '.tables'
+	[ ! -z $DO_SHOW_TABLES ] && $__SQLITE__ $DB '.tables'
 	
 	
 	# Retrieve datatypes
@@ -1129,12 +1195,12 @@ dbm() {
 					__INSTR__="$__INSTR__, $__VARVAL__" 
 				done
 			
-				echo "$SQLITE $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
+				echo "$__SQLITE__ $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
 				eval "echo \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
-				eval "$SQLITE $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
+				eval "$__SQLITE__ $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
 				# Should probably be careful here.  
 				# Mostly just path stuff to worry about.
-	#				eval "$SQLITE $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
+	#				eval "$__SQLITE__ $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
 	
 			# Allow the ability to craft a more standard INSERT own.
 			else
@@ -1194,7 +1260,7 @@ dbm() {
 				# Writing this recursively would involve knowing where the string is...
 	
 				# Just taking a command line dump here.
-				echo $SQLITE $DB "INSERT INTO ${__TABLE} VALUES ( $WRITE )"
+				echo $__SQLITE__ $DB "INSERT INTO ${__TABLE} VALUES ( $WRITE )"
 			fi
 		fi
 	
@@ -1214,22 +1280,22 @@ dbm() {
 			}
 	
 			# Select all the records asked for.
-			$SQLITE $DB $SR_TYPE "SELECT $SELECT FROM ${__TABLE}${STMT}"
+			$__SQLITE__ $DB $SR_TYPE "SELECT $SELECT FROM ${__TABLE}${STMT}"
 		}	
 	
 		# select only id
 		# Select all the records asked for.
-		[ ! -z $DO_ID ] && $SQLITE $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}"
+		[ ! -z $DO_ID ] && $__SQLITE__ $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}"
 		
 		# update
 		[ ! -z $DO_UPDATE ] && {
 			# Compound your SET statements, same rules apply as in regular statment
 			assemble_set
-			$SQLITE $DB "UPDATE ${__TABLE} SET ${ST_TM}${STMT}"
+			$__SQLITE__ $DB "UPDATE ${__TABLE} SET ${ST_TM}${STMT}"
 		}	
 	
 		# remove
-		[ ! -z $DO_REMOVE ] && $SQLITE $DB "DELETE FROM ${__TABLE}${STMT}"
+		[ ! -z $DO_REMOVE ] && $__SQLITE__ $DB "DELETE FROM ${__TABLE}${STMT}"
 	fi 
 	# [ ORM ] END
 
