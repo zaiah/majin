@@ -18,3 +18,4 @@ check_for_editor:interaction/check_for_editor.sh
 installation:interaction/installation.sh
 tmp_file:files/tmp_file.sh
 hello:strings/hello.sh
+dbm:databases/dbm.sh

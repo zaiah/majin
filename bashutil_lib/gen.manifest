@@ -3,6 +3,7 @@ hello:
 break_list_by_delim: Creates an array based on a string containing delimiters.
 break_maps_by_delim: Creates a key to value pair based on a string containing delimiters.
 # databases 
+dbm:
 load_from_db_columns: Create a variable in Bash out of each column header in a table and fill it with information found in that column.
 modify_from_db_columns: Load data from database and edit from a temporary file, writing back the results.
 convert: Prepares records to be placed into a SQLite 3 database.

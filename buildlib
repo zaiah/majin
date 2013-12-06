@@ -30,7 +30,7 @@
 #-----------------------------------------------------#
 BINDIR="$(dirname "$(readlink -f $0)")"
 SELF="$(readlink -f $0)"
-LIB="${BINDIR}/lib.complete"
+LIB="${BINDIR}/lib/__.sh"
 source $LIB
 PROGRAM="buildlib"
 

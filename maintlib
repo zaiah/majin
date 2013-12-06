@@ -35,8 +35,8 @@ BINDIR="$(dirname "$(readlink -f $0)")"
 SELF="$(readlink -f $0)"
 
 # Reference a central library
-LIB="${BINDIR}/lib.complete"
-LIBDIR="${BINDIR}/lib"
+LIBDIR="${BINDIR}/bashutil_lib"
+LIB="${BINDIR}/lib/__.sh"
 source $LIB
 DB="$LIBDIR/libs.db"
 
