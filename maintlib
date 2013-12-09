@@ -80,7 +80,9 @@ add_to_library(){
 # Get class names.
 get_class_names() {
 #  	grep '#' $LIB_MANIFEST | sed 's/# //'
-	dbm --select-all
+#	dbm --columns --of libs
+	dbm --distinct 'class' --from libs
+	dbm --select-all --from libs
 }
 
 
@@ -223,8 +225,6 @@ NEWLINE="
 # after adding new names.
 # You can ...
 
-get_class_names
-exit
 
 # Die if no arguments received.
 [ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1

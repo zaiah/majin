@@ -1,3 +1,4 @@
+
 #-----------------------------------------------------#
 # db-minishell
 #
@@ -611,7 +612,7 @@ dbm() {
 		unset __RESULTBUF__
 	
 		# Hold the schema results in the buffer.
-		__RESULTBUF__="$( $SQLITE $DB ".schema ${__TABLE}")"
+		__RESULTBUF__="$( $__SQLITE__ $DB ".schema ${__TABLE}")"
 	
 		# Die if nothing is there...
 		if [ -z "$__RESULTBUF__" ]
@@ -656,7 +657,7 @@ dbm() {
 		done
 	
 		# Hold the schema results in buffer.
-		__DTBUF__="$( $SQLITE $DB ".schema ${__TABLE}")"
+		__DTBUF__="$( $__SQLITE__ $DB ".schema ${__TABLE}")"
 	
 		# Die if nothing is there...
 		if [ -z "$__DTBUF__" ]
@@ -762,16 +763,16 @@ dbm() {
 				printf ".headers ON\nSELECT * FROM ${TABLE};\n" >> $TMPFILE
 			fi
 				exit
-			LFDB_HEADERS=( $( $__SQLITE $DB < $TMPFILE | \
+			LFDB_HEADERS=( $( $__SQLITE__ $DB < $TMPFILE | \
 				head -n 1 | \
 				tr '|' ',' ) )
 	
-			LFDB_VARS=( $( $__SQLITE $DB < $TMPFILE | \
+			LFDB_VARS=( $( $__SQLITE__ $DB < $TMPFILE | \
 				head -n 1 | \
 				tr '|' ' ' | \
 				tr [a-z] [A-Z] ) )
 	
-			LFDB_ID=$( $__SQLITE $DB < $TMPFILE | \
+			LFDB_ID=$( $__SQLITE__ $DB < $TMPFILE | \
 				tail -n 1 | \
 				awk -F '|' '{ print $1 }')
 	
@@ -780,7 +781,7 @@ dbm() {
 	
 			# Get all items.
 			printf "SELECT ${LFDB_HEADERS[@]} FROM ${TABLE};\n" >> $TMPFILE
-			LFDB_RES=$( $__SQLITE $DB < $TMPFILE | tail -n 1 )
+			LFDB_RES=$( $__SQLITE__ $DB < $TMPFILE | tail -n 1 )
 			[ -e $TMPFILE ] && rm $TMPFILE
 	
 	
@@ -887,7 +888,7 @@ dbm() {
 	
 			# Do the write.
 			#echo $SQL_LOADSTRING
-			$__SQLITE $DB "$SQL_LOADSTRING"
+			$__SQLITE__ $DB "$SQL_LOADSTRING"
 	
 			#vi -O $TMP/__{cmp,dbvar}.sh
 			# Write stuff to database 
