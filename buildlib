@@ -576,7 +576,7 @@ fi
 	# (now namespaces are more important than ever...)
 	( 
 		printf "%s\n" "#!/bin/bash" 
-		printf "%s\n\n" '__BULIBSRC__="$(dirname $(readlink -f 0))/lib"'
+		printf "%s\n\n" '__BULIBSRC__="$(dirname $(readlink -f $0))/lib"'
 		printf "# Hold library names and checksums.\n"
 		printf "%s\n" "BASHUTIL_LIBS=(" 
 	
@@ -625,7 +625,10 @@ fi
 
 	# Test it.
 	tmp_file -n TESTLIB 
-	printf "$(readlink -f $LINK_AT)\n" > /dev/stderr
+	[ ! -z $VERBOSE ] && {
+		printf "Testing library generated at: "
+		printf "$(readlink -f $LINK_AT)\n" > /dev/stderr
+	}
 	printf "source $(readlink -f $LINK_AT)/__.sh\n" > $TESTLIB
 	bash $TESTLIB
 	tmp_file -w

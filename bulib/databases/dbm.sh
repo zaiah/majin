@@ -358,37 +358,35 @@ dbm() {
 		# Test for empty string, (but how?)
 	
 		# BETWEEN 
-		if [ ! -z $__BETWEEN ] 
-		then
+		[ ! -z $__BETWEEN ] && {
 			BETWEEN_COL=${__BETWEEN%%=*}
 			BETWEEN_VAL=${__BETWEEN##*=}
 			[ -z "$STMT" ] && STMT="WHERE $BETWEEN_COL BETWEEN ${BETWEEN_VAL%%-*} AND ${BETWEEN_VAL##*-}" || \
 				STMT=" ${STMT} BETWEEN $__BETWEEN"
-		fi
-	
+		}	
+		
 		# LIMIT  
-		if [ ! -z $__LIM ] 
-		then
+		[ ! -z "$__LIM" ] && {
 			[ -z "$STMT" ] && STMT="LIMIT $__LIM" || STMT=" ${STMT} LIMIT $__LIM"
-		fi
+	
+			# Include any offset.
+			[ ! -z "$__OFFSET" ] && STMT=" ${STMT} OFFSET $__OFFSET"
+		}	
 	
 		# ... ORDER BY
-		if [ ! -z $__ORDER_BY ]
-		then
+		[ ! -z "$__ORDER_BY" ] && {
 			[ -z "$STMT" ] && STMT="ORDER BY $__ORDER_BY" || STMT=" ${STMT} ORDER BY $__ORDER_BY"
-		fi
+		}	
 	
 		# ... HAVING
-		if [ ! -z $__HAVING ]
-		then
+		[ ! -z "$__HAVING" ] && {
 			[ -z "$STMT" ] && STMT="HAVING $__ORDER_BY" || STMT=" ${STMT} HAVING $__ORDER_BY"
-		fi
+		}	
 	
 		# ... GROUP BY
-		if [ ! -z $__GROUP_BY ]
-		then
-			[ -z "$STMT" ] && STMT="GROUP BY $__ORDER_BY" || STMT=" ${STMT} GROUP BY $__ORDER_BY"
-		fi
+		[ ! -z "$__GROUP_BY" ] && {
+			[ -z "$STMT" ] && STMT="GROUP BY $__ORDER_BY" || STMT=" ${STMT} GROUP BY $__GROUP_BY"
+		}	
 	
 		# Prepare the clause (begin with space, then WHERE, and end with ';')
 		[ -z "$STMT" ] && STMT=';' || STMT=" ${STMT};"
@@ -611,7 +609,7 @@ dbm() {
 		unset __RESULTBUF__
 	
 		# Hold the schema results in the buffer.
-		__RESULTBUF__="$( $SQLITE $DB ".schema ${__TABLE}")"
+		__RESULTBUF__="$( $__SQLITE__ $DB ".schema ${__TABLE}")"
 	
 		# Die if nothing is there...
 		if [ -z "$__RESULTBUF__" ]
@@ -656,7 +654,7 @@ dbm() {
 		done
 	
 		# Hold the schema results in buffer.
-		__DTBUF__="$( $SQLITE $DB ".schema ${__TABLE}")"
+		__DTBUF__="$( $__SQLITE__ $DB ".schema ${__TABLE}")"
 	
 		# Die if nothing is there...
 		if [ -z "$__DTBUF__" ]
@@ -939,8 +937,6 @@ dbm() {
 	
 			-c|--columns)
 				DO_GET_COLUMNS=true
-				shift
-				__TABLE="$1"
 			;;
 	
 			-dt|--datatypes)
@@ -967,6 +963,43 @@ dbm() {
 				DO_SEND_QUERY=true
 				DO_SELECT=true
 				SELECT="*"
+			;;
+	
+			--distinct)
+				DO_SEND_QUERY=true
+				DO_DISTINCT=true
+				DO_SELECT=true
+				shift
+				SELECT="$1"
+			;;
+	
+			--limit)
+				DO_SEND_QUERY=true
+				shift
+				__LIM="$1"
+			;;
+			--having)
+				DO_SEND_QUERY=true
+				shift
+				__HAVING="$1"
+			;;
+	
+			--offset)
+				DO_SEND_QUERY=true
+				shift
+				__OFFSET="$1"
+			;;
+	
+			--order-by)
+				DO_SEND_QUERY=true
+				shift
+				__ORDER_BY="$1"
+			;;
+	
+			--group-by)
+				DO_SEND_QUERY=true
+				shift
+				__GROUP_BY="$1"
 			;;
 	
 			-f|--from)
@@ -1136,11 +1169,19 @@ dbm() {
 		then
 			if [ -z $DO_LIBRARIFY ] 
 			then
-				[ ! -z $DO_SELECT ] && [ -z "$SELECT" ] && NO_STMT_SPECIFIED="SELECT" 
-				[ ! -z $DO_REMOVE ] && [ -z "$CLAUSE" ] && NO_STMT_SPECIFIED="DELETE FROM" 
-				[ ! -z $DO_ID ] && [ -z "$CLAUSE" ] && NO_STMT_SPECIFIED="SELECT" 
+				[ ! -z $DO_SELECT ] && [ -z "$SELECT" ] && {
+					NO_STMT_SPECIFIED="SELECT" 
+				}
+				[ ! -z $DO_REMOVE ] && [ -z "$CLAUSE" ] && {
+					NO_STMT_SPECIFIED="DELETE FROM" 
+				}
+				[ ! -z $DO_ID ] && [ -z "$CLAUSE" ] && {
+					NO_STMT_SPECIFIED="SELECT" 
+				}
 				[ ! -z $DO_WRITE ] && NO_STMT_SPECIFIED="INSERT INTO" 
-				[ ! -z $DO_UPDATE ] && [ -z "$SET" ] && NO_STMT_SPECIFIED="UPDATE" 
+				[ ! -z $DO_UPDATE ] && [ -z "$SET" ] && {
+					NO_STMT_SPECIFIED="UPDATE" 
+				}
 				printf "Either no database, no table or no columns specified in the ${NO_STMT_SPECIFIED} statement.\n"
 				$__EXIT__ 1
 			else
@@ -1194,8 +1235,13 @@ dbm() {
 					# Append to an INSERT string.
 					__INSTR__="$__INSTR__, $__VARVAL__" 
 				done
-			
-				echo "$__SQLITE__ $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
+		
+				# Debugger output if requested.
+				[ ! -z $ECHO_BACK ] && {
+					printf "%s" "$__SQLITE__ $DB "
+					printf "%s" "\"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
+				}
+	
 				eval "echo \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
 				eval "$__SQLITE__ $DB \"INSERT INTO ${__TABLE} VALUES ( $__INSTR__ )\""
 				# Should probably be careful here.  
@@ -1265,7 +1311,13 @@ dbm() {
 		fi
 	
 		# By this point, this program needs to check for and craft a clause.
-		[ ! -z "$CLAUSE" ] || [ ! -z "$__BETWEEN" ] && assemble_clause
+		[ ! -z "$CLAUSE" ] || \
+			[ ! -z "$__BETWEEN" ] || \
+			[ ! -z "$__LIM" ] || \
+			[ ! -z "$__HAVING" ] || \
+			[ ! -z "$__OFFSET" ] || \
+			[ ! -z "$__ORDER_BY" ] || \
+			[ ! -z "$__GROUP_BY" ] && assemble_clause
 	
 		# select
 		[ ! -z $DO_SELECT ] && {
@@ -1279,13 +1331,27 @@ dbm() {
 				esac
 			}
 	
+			# Any modifiers? 
+			[ ! -z $DO_DISTINCT ] && SELECT_DISTINCT="SELECT DISTINCT"
+	
+			# Debugging output.
+			[ ! -z $ECHO_BACK ] && {
+				printf "%s" "$__SQLITE__ $DB $SR_TYPE" 
+				printf "%s" "'${SELECT_DISTINCT:-SELECT} $SELECT FROM ${__TABLE}${STMT}'"
+				printf "\n"
+			}
+	
 			# Select all the records asked for.
-			$__SQLITE__ $DB $SR_TYPE "SELECT $SELECT FROM ${__TABLE}${STMT}"
+			$__SQLITE__ $DB \
+				$SR_TYPE \
+				"${SELECT_DISTINCT:-SELECT} $SELECT FROM ${__TABLE}${STMT}"
 		}	
 	
 		# select only id
 		# Select all the records asked for.
-		[ ! -z $DO_ID ] && $__SQLITE__ $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}"
+		[ ! -z $DO_ID ] && {
+			$__SQLITE__ $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}"
+		}
 		
 		# update
 		[ ! -z $DO_UPDATE ] && {
