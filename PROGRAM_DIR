@@ -1,0 +1,17 @@
+program dir should contain:
+
+lib -
+	all the libraries one collects over time and places everywhere....
+
+licenses -
+	all a company's licenses including the basics that should ship with this.
+
+just possibly....
+	add a folder for custom functions that improve upon any built-ins, like:
+		--printerr
+		--opteval
+		--trap
+		...etc	
+
+	
+
