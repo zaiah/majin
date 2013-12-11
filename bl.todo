@@ -1,0 +1,83 @@
+
+id
+location
+name
+class
+checksum
+description
+date_created
+date_last_modified
+
+
+search_for 
+	add an option to be more literal (as in avoid programming rules, which will change slightly per shell or syntax, then you really need that whole compile thing....or at least a way to link to a function's result...)
+perhaps something like --add-to
+
+	add a library or some upgrade to something that already exists...
+
+when dying on options, MUST have something to tell which option is errant,
+and not print `usage`
+
+maintlib, either
+	create a library at the home directory, parse the date for when it was last done?
+
+	keep library within the program directory? (...)
+
+? does buildlib actually work?
+
+x need a way to create usage, and documentation for each new mini function...
+	(can work with buildlib's stuff to make this happen...)
+? usage should always work with stderr
+when compiling a library (
+	variables should be within their own file (or at the top of the new script, heavily depends on what's being written...)
+
+writing bu with the database within the program directory was kind of a bad idea...
+	rewrite to have a ${PROGRAM} directory
+
+Cvs or git can be used to pull down the repo of scripts
+
+Include buildunit
+	still have to spec this...
+
+Fix maintlib to add stuff
+
+
+
+
+Nothing to do
+Usage: ./buildlib
+	[ -  ]
+
+Library Compile Actions:
+-k | --link-at <arg>          Link what is chosen at a certain directory.
+-kw| --link-with <arg>        Link with the <arg> compiled in.
+-w | --with <arg>             Build library with functions listed in <arg> 
+-x | --without <arg>          Build library with functions listed in <arg> 
+-z | --all-libs               Build library with functions listed in <arg> 
+-n | --name <arg>             Give the library and its elements a consistent 
+                              name.
+-q | --namespace <arg>        Build library functions with a different 
+                              naming convention.
+-c | --comments               Include comments in library. (default includes comments :) )
+-l | --list                   List all available functions. 
+-? | --describe <arg>         Describe function <arg>.
+--specify-with                Use a menu to choose library list.
+
+Library Runtime Actions:
+-e | --executables <arg>      Convert names in <arg> to variables that alias
+                              programs located in your $PATH
+-s | --static <arg>           Convert names in <arg> to variables pointing to 
+                              immutable values. 
+-ff| --functions-for <list> Generate some skelelon functions.
+                            ( echo '...' is default )
+-d | --depcheck               Generate code to run a dependency check.
+-s | --standard_dirs <arg>    Convert names in <arg> to variables that 
+                              reference your program's common directories.
+-u | --security               Generate code to secure a shell script.
+-a | --set-all <arg>          Set all flags that do not require an argument.
+                              <arg> refers to library name.
+
+General Options:
+-v | --verbose                Be verbose in output.
+-h | --help                   Show this help and quit.
+

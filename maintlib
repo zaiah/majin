@@ -41,7 +41,6 @@ LIB="${BINDIR}/lib/__.sh"
 source $LIB
 DB="$LIBDIR/libs.db"
 
-
 # usage() - Show usage message and die with $STATUS
 usage() {
    STATUS="${1:-0}"
@@ -371,10 +370,19 @@ then
 	# Class?
 	if [ -z "$CLASS" ] 
 	then 
-		printf "Can't add a library without some sort of general classification."
-		printf "(Try the --class flag, or use --classes for a " 
-		printf "list of available classes.)"
-		usage 1
+#		(		
+#			printf "Can't add a library without some sort of "
+#			printf "general classification.\n"
+#			printf "(Try the --class flag, or use --classes for a " 
+#			printf "list of available classes.)\n" 
+#		) > /dev/stderr
+		CLASS="orphan"
+		# Choose the 'orphan' class, can move later... 
+		# Maybe (as long as it's well documented) use a flag or directive
+		# to make this a strict check or not...
+		#
+		# Using folders isn't really that hot of an idea...
+		# It just becomes confusing to manage...
 
 	# Check that the classname is valid.
 	else
@@ -401,6 +409,8 @@ then
 
 		# Find the function name within the file.
 		# -x pear --from mega.sh
+		# 
+		# Check multiple permutations of the same name.
 		SL=$(grep --line-number "$FEXNAME ()" $FROM | awk -F ':' '{ print $1 }')
 		if [ -z "$SL" ] 
 		then 
@@ -433,32 +443,67 @@ then
 	# Did the user supply any arugments? 
 	if [ -z "$NAME" ] && [ -z "$ADD" ] 
 	then
-		printf "Neither --name or <arg> within --add was supplied."
-		printf "Giving up..."
-		usage 1
+		(
+			printf "Neither --name or <arg> within --add was supplied.\n"
+			printf "Giving up...\n"
+		) > /dev/stderr
 	fi
 
 
 	# Does this file have a proper name or not?
-	[ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]] && NAME="${NAME}.sh"
+	# NAME - name of something that's been extracted....
+	# ADD - name of a file that I've pointed to...
+	# __LIBFILE__ - The actual path of the file.  (Can be anywhere...)
+	# __LIBNAME__ - Regardless of whether NAME or ADD was used, this is the name of whatever is being saved... 
+	[ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]] && {
+		NAME="${NAME}.sh"
+	}
 	__LIBFILE__="${NAME:-$ADD}"
 	__LIBNAME__="${NAME:-${ADD}}"
-	[ -z "$NAME" ] && [ ! -z "$ADD" ] && NAME="${ADD%%.sh}" 
+	[ -z "$NAME" ] && [ ! -z "$ADD" ] && {
+		NAME="${ADD%%.sh}" 
+	}
 
-	
-	# Also check if this name already exists in the list.
-	if [[ ! "$(grep "${__LIBNAME__%%.sh}" $LIB_MANIFEST)" == "" ]] && \
-		[ -z $DO_OVERWRITE ]
+	# 
+	if [ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]]
 	then
-		printf "This library is already in your bashutil toolkit."
-		printf "Please either use the --extract flag to update the library"
-		printf " or the --overwrite flag to wipe the original.\n"
-		exit 1
+		printf '' > /dev/null
+
+	elif [ -z "$NAME" ] && [ ! -z "$ADD" ]
+	then
+		printf '' > /dev/null
+
 	fi
 
-	# Copying with the correct name if I've asked for one.
-#	[ -f "$ADD" ] && cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
+	echo ...
+	echo ==========================
+	echo Absolute path: $__LIBFILE__
+	echo Final Name: $__LIBNAME__
+	echo
+	echo Either of the following but
+	echo name will override filename.
+	echo ==========================
+	echo Name of extraction: $NAME
+	echo File to put in lib: $ADD
 
+	exit
+	# Check if it exists or overwrite it.
+	IN_DB="$(dbm -s 'name' -w "name~$NAME" 2>/dev/null)"
+	[ ! -z "$IN_DB" ] && [ -z $DO_OVERWRITE ] && {
+		( 
+			printf "This library is already in your bashutil toolkit.\n"
+			printf "If you would like to update this library, use the "
+			printf "--overwrite flag to wipe the original.\n"
+		) > /dev/stderr
+		exit 1
+	}	
+
+
+	# Copying with the correct name if I've asked for one.
+	echo $ADD
+	[ -f "$ADD" ] && echo cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
+
+	exit
 	# Or copy the buffer...
 #	[ ! -z "$BUFFER" ] && printf "%s" "$BUFFER" >> $SRCLIB/$CLASS/$__LIBFILE__ 
 
