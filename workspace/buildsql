@@ -100,6 +100,16 @@ is_element_present_in() {
 	echo $STAT
 }
 
+aaatitytwochainz
+
+titytwochainz  (   )      {	# Flambob  # Ace rocket
+	printf "oh lawd..."
+}
+
+titytwochainz
+
+
+
 
 # Die on no options.
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1

@@ -1096,6 +1096,8 @@ dbm() {
 	}
 	
 	
+	__EXIT__=
+	
 	# Die if no arguments received.
 	if [ -z $DO_LIBRARIFY ]
 	then
@@ -1123,8 +1125,6 @@ dbm() {
 	fi
 	
 	# Arrays
-	declare -a WHERE_CLAUSE 
-	declare -a NOT_CLAUSE 
 	declare -a OR_X_AND			# Is it an OR or AND clause?
 	# Process options.
 	while [ $# -gt 0 ]
@@ -1155,6 +1155,11 @@ dbm() {
 				shift
 				__TABLE="$1"
 			;;
+	
+		 	--echo)
+				 ECHO_BACK=true
+		 	 ;;
+	
 			# [ ADMIN ] END
 			-s|--select)
 				DO_SEND_QUERY=true
@@ -1244,6 +1249,8 @@ dbm() {
 			;;
 	
 			-e|--set)
+				DO_SEND_QUERY=true
+				DO_UPDATE=true
 				shift
 				if [[ "$1" =~ "|" ]]
 				then
@@ -1507,9 +1514,11 @@ dbm() {
 	
 			# Debugging output.
 			[ ! -z $ECHO_BACK ] && {
-				printf "%s" "$__SQLITE__ $DB $SR_TYPE" 
-				printf "%s" "'${SELECT_DISTINCT:-SELECT} $SELECT FROM ${__TABLE}${STMT}'"
-				printf "\n"
+				(
+					printf "%s" "$__SQLITE__ $DB $SR_TYPE" 
+					printf "%s" "'${SELECT_DISTINCT:-SELECT} $SELECT FROM ${__TABLE}${STMT}'"
+					printf "\n"
+				) > /dev/stderr
 			}
 	
 			# Select all the records asked for.
@@ -1521,19 +1530,79 @@ dbm() {
 		# select only id
 		# Select all the records asked for.
 		[ ! -z $DO_ID ] && {
+			# Echo back if asked.
+			[ ! -z $ECHO_BACK ] && {
+				printf "%s" $__SQLITE__ $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}" > /dev/stderr
+			}
+	
+			# Do a select.
 			$__SQLITE__ $DB "SELECT ${ID_IDENTIFIER:-id} FROM ${__TABLE}${STMT}"
 		}
-		
-		# update
-		[ ! -z $DO_UPDATE ] && {
-			# Compound your SET statements, same rules apply as in regular statment
-			assemble_set
-			$__SQLITE__ $DB "UPDATE ${__TABLE} SET ${ST_TM}${STMT}"
-		}	
 	
+		# update	
+		[ ! -z $DO_UPDATE ] && {
+			# Compound your SET statements, 
+			# same rules apply as in regular statment
+			assemble_set
+	
+			# Return query first if asked.
+			[ ! -z $ECHO_BACK ] && {
+				(
+					printf -- "%s" "$__SQLITE__ $DB "
+					printf "UPDATE ${__TABLE} SET ${ST_TM}${STMT}"
+					printf "\n"
+				) > /dev/stderr
+			}
+	
+			# Run the query.
+			$__SQLITE__ $DB "UPDATE ${__TABLE} SET ${ST_TM}${STMT}"
+		}
+		
 		# remove
-		[ ! -z $DO_REMOVE ] && $__SQLITE__ $DB "DELETE FROM ${__TABLE}${STMT}"
+		[ ! -z $DO_REMOVE ] && {
+			$__SQLITE__ $DB "DELETE FROM ${__TABLE}${STMT}"
+		}
 	fi 
 	# [ ORM ] END
+	# Plumbing
+	unset __SQLITE__
+	unset __TABLE
+	
+	# Clauses
+	unset STMT
+	unset CLAUSE
+	unset __BETWEEN
+	unset __GROUP_BY
+	unset __HAVING
+	unset __LIM
+	unset __OFFSET
+	unset __ORDER_BY
+	
+	# Queries
+	unset SELECT
+	unset SELECT_DISTINCT
+	unset INSTALL_DIR
+	unset QUERY_ARG
+	unset SERIALIZATION_TYPE
+	unset WRITE
+	
+	# Unset all flags.
+	unset DO_DISTINCT
+	unset DO_FROM
+	unset DO_GET_COLUMNS
+	unset DO_GET_DATATYPES
+	unset DO_ID
+	unset DO_INSTALL
+	unset DO_REMOVE
+	unset DO_SHOW_TABLES_AND_COLUMNS
+	unset DO_SHOW_TABLES
+	unset DO_UPDATE
+	unset DO_VARDUMP
+	unset DO_WHERE
+	unset DO_WRITE_FROM_MEM
+	unset ECHO_BACK
+	unset VERBOSE
+	
+	# [ CODE ] END
 
 }

@@ -47,16 +47,26 @@ usage() {
    printf "Usage: ./${PROGRAM}
 	[ -  ]
 
+Maintenance:
 -a | --add <arg>              Add a new library. 
 -n | --name <arg>             Add a new library with name <arg> (must be
                               used in conjunction with the --add flag)
 -r | --remove <arg>           Remove a library. 
 -e | --edit <arg>             Edit a library with an available editor.
--f | --from <arg>             Extract a library from some code. 
+
+Classes:
 -c | --class <arg>            Use class name <arg> when modifying libraries.
 -ac | --add-class <arg>       Add a class. 
 -rc | --remove-class <arg>    Remove a class.
 -lc | --classes               List classes available. 
+
+Extraction:
+-x | --extract <arg>          Extract the function from code.
+     --extract-lines  <arg>   Extract range from code.
+     --extract-stdin          Extract from /dev/stdin.
+-f | --from <arg>             Choose a file to extract library from.
+
+General:
 -g | --get <arg>              Add a new library. 
 -q | --query                  Query available libraries.
 -o | --overwrite              Overwrite a class when a library already exists.
@@ -166,16 +176,14 @@ NEWLINE="
 			IN_VAR=true && continue
 		fi
 
-		# [[ $CHAR_1 == ' ' ]]
-		[[ $CHAR_1 == '{' ]] && [ $IN_VAR == true ] && continue
+		[[ "$CHAR_1" == '{' ]] && [ "$IN_VAR" == true ] && continue
 
-		if [[ $CHAR_1 == '}' ]] && [ $IN_VAR == true ] 
-		then 
+		[[ $CHAR_1 == '}' ]] && [ "$IN_VAR" == true ] && {
 			IN_VAR=false
 			continue
-		fi
+		}	
 
-#		# If it's in a comment, need to skip.
+		# If it's in a comment, need to skip.
 		if [[ $CHAR_1 == '#' ]] 
 		then
 			[ ! -z $IN_VAR ] && IN_COMM=true && continue
@@ -268,7 +276,23 @@ do
          SELECTION="$1"
       ;;
 
-		# From
+     -x|--extract)
+			DO_FROM=true
+         shift
+         FEXNAME="$1"
+      ;;
+
+     --extract-lines)
+			DO_FROM=true
+         shift
+         FROM="$1"	# Different argument.
+      ;;
+
+     --extract-stdin)
+			DO_FROM=true
+         FROM="/dev/stdin"
+      ;;
+
      -f|--from)
          shift
          FROM="$1"
@@ -395,35 +419,102 @@ then
 		fi
 	fi
 
+	# No special characters of the following should be in $NAME
+	# They with either generate syntax or SQL errors.
+	[[ "$NAME" =~ "/" ]] || \
+	[[ "$NAME" =~ "\\" ]] || \
+	[[ "$NAME" =~ "(" ]] || \
+	[[ "$NAME" =~ ")" ]] || \
+	[[ "$NAME" =~ "#" ]] || \
+	[[ "$NAME" =~ "!" ]] || \
+	[[ "$NAME" =~ "-" ]] \
+	&& {
+		( 
+			printf "Argument supplied to --name cannot contain any "
+			printf "of the following special characters:\n"
+			printf '[ / \ ( ) # ! - ]' 
+		) > /dev/stderr
+		exit 1
+	}
+
 	# Extract if we did it this way.
-	if [ ! -z $DO_FROM ] 
-	then
+	[ ! -z $DO_FROM ] && {
 		# Did you ask for anything to extract?
-		[ -z "$FEXNAME" ] && printf "Nohting to extract." && usage 1
+		[ -z "$FEXNAME" ] && {
+			( 
+				printf "No file selected to extract from.\n" 
+				printf "Did you use the any of the extraction options?\n"
+			) > /dev/stderr
+			exit 1
+		}
 
 		# Does the file actually exist?
-		[ ! -f "$FROM" ] && printf "Can't find file $FROM." && usage 1
+		[ ! -f "$FROM" ] && {
+			(
+				printf "Error accessing file: $FROM.\n" 
+				printf "No such file or directory.\n"
+			) > /dev/stderr
+			exit 1
+		}
 
 		# Set a name.
 		[ -z "$NAME" ] && NAME="$FEXNAME"
 
 		# Find the function name within the file.
-		# -x pear --from mega.sh
+		# (Example: $PROGRAM -x pear --from mega.sh)
 		# 
-		# Check multiple permutations of the same name.
-		SL=$(grep --line-number "$FEXNAME ()" $FROM | awk -F ':' '{ print $1 }')
-		if [ -z "$SL" ] 
-		then 
-			SL=$(grep --line-number "$FEXNAME()" $FROM | \
-				awk -F ':' '{ print $1 }')
-		fi
+		# What if there are multiple of the same name?
+		# If a conflict like this is found, best to examine
+		# both functions as temporary files or let the user know.
+		#
+		# Find the line number containing our name, if more
+		# than one match, handle it properly.
+		SLA="$(grep --line-number "$FEXNAME" $FROM | \
+			awk -F ':' '{ print $1 }')"
 
-		# Die if nothing found.
-		if [ -z "$SL" ] 
-		then
-			printf "Couldn't find any function: $FEXNAME \nWithin file: $FROM\n"
+		# Could have many matches.
+		[ ! -z "$SLA" ] && SLA=( $SLA )
+
+		# In said line, check to make sure that $FEXNAME 
+		# is actually $FEXNAME and not part of something else.
+		for POSS_RANGE in ${SLA[@]}
+		do
+			# Process this one line.
+			FEXSRC="$(sed -n ${POSS_RANGE}p ${FROM} 2>/dev/null)"
+
+			# Disregard comment blocks.
+			[[ "$FEXSRC" =~ "#" ]] && {
+				# Check everything before the first comment.
+				FEXSRC="${FEXSRC%%#*}"
+			}
+
+			# If matched line doesn't contain (), next match. 
+			[[ ! "$FEXSRC" =~ "(" ]] || [[ ! "$FEXSRC" =~ ")" ]] && {
+				continue	
+			}
+
+			# Remove leading white space and function wraps...
+			FEXLINE="$( printf "%s" $FEXSRC | \
+				sed "s/^[ \t]*\($FEXNAME\).*/\1/g")" 
+
+			# ... to check if script received an accurate match.
+			[[ ! "$FEXLINE" == $FEXNAME ]] && {
+				continue	
+			}
+
+			# If all checks are good, there's the line range.
+			SL=$POSS_RANGE
+			break
+		done
+
+		# Die if nothing was found.
+		[ -z $SL ] && {
+			( 
+				printf "Couldn't find function \`"
+				printf "$FEXNAME\` within file: $FROM\n"
+			) > /dev/stderr
 			exit 1
-		fi
+		}
 
 		# Define the possible range.
 		PFR="$(sed -n ${SL},$(wc -l $FROM | awk '{print $1}')p $FROM)"
@@ -435,95 +526,126 @@ then
 		# Using for to iterate through file?
 		BUFFER="$(printf "%s" "$PFR" | head -c $(( $FEXEND + 1 )))"
 
-		printf "%s" "$BUFFER"
-		exit
-	fi
+		# Save buffer to temporary file.
+		tmp_file -n BUFFILE
+		printf "%s" "$BUFFER" > $BUFFILE
+	}	
 
 
 	# Did the user supply any arugments? 
-	if [ -z "$NAME" ] && [ -z "$ADD" ] 
-	then
+	[ -z "$NAME" ] && [ -z "$ADD" ] && {
 		(
 			printf "Neither --name or <arg> within --add was supplied.\n"
 			printf "Giving up...\n"
 		) > /dev/stderr
-	fi
-
-
-	# Does this file have a proper name or not?
-	# NAME - name of something that's been extracted....
-	# ADD - name of a file that I've pointed to...
-	# __LIBFILE__ - The actual path of the file.  (Can be anywhere...)
-	# __LIBNAME__ - Regardless of whether NAME or ADD was used, this is the name of whatever is being saved... 
-	[ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]] && {
-		NAME="${NAME}.sh"
-	}
-	__LIBFILE__="${NAME:-$ADD}"
-	__LIBNAME__="${NAME:-${ADD}}"
-	[ -z "$NAME" ] && [ ! -z "$ADD" ] && {
-		NAME="${ADD%%.sh}" 
 	}
 
-	# 
-	if [ ! -z "$NAME" ] && [[ ! "$NAME" =~ ".sh" ]]
+
+	# If a name was specified, it takes precendence.
+	if [ ! -z "$NAME" ] && [ ! -z "$ADD" ]
 	then
-		printf '' > /dev/null
+		# Have to loop through the different extensions.
+		for FN_EXT in .sh .ksh .csh .bash
+		do
+			# If name contains extension, set FN_HANDLE
+			FN_HANDLE="${ADD}${FN_EXT}"
+			[[ -f "$FN_HANDLE" ]] && break
+			unset FN_HANDLE
+		done
 
+		# Set the names.
+		__SRCFILE__="${FN_HANDLE:-$ADD}"
+		__LIBFILE__="${NAME}.sh"
+		__LIBNAME__="$NAME"
+
+	# If just a file was added, the filename is the script name.
 	elif [ -z "$NAME" ] && [ ! -z "$ADD" ]
 	then
-		printf '' > /dev/null
+		# Have to loop through the different extensions.
+		for FN_EXT in .sh .ksh .csh .bash
+		do
+			# If name contains extension, set FN_HANDLE
+			FN_HANDLE="${ADD}${FN_EXT}"
+			[[ -f "$FN_HANDLE" ]] && break
+			unset FN_HANDLE
+		done
 
+		# Set names again.
+		__SRCFILE__="${FN_HANDLE:-$ADD}"
+		__LIBFILE__="$(basename ${ADD%%.sh}).sh"
+		__LIBNAME__="$(basename ${ADD%%.sh})"
+
+	# If name and nothing else, we're extracting.
+	elif [ ! -z "$NAME" ] && [ -f "$BUFFILE" ]
+	then
+		# Set names again.
+		__SRCFILE__="$BUFFILE"
+		__LIBFILE__="${NAME}.sh"
+		__LIBNAME__="$NAME"
 	fi
 
-	echo ...
-	echo ==========================
-	echo Absolute path: $__LIBFILE__
-	echo Final Name: $__LIBNAME__
-	echo
-	echo Either of the following but
-	echo name will override filename.
-	echo ==========================
-	echo Name of extraction: $NAME
-	echo File to put in lib: $ADD
+	# Debugging info...
+#	echo ==========================
+#	echo Absolute path: $__SRCFILE__
+#	echo Final Name: $__LIBNAME__
+#	echo
+#	echo Either of the following but
+#	echo name will override filename.
+#	echo ==========================
+#	echo Name of extraction: $FEXNAME
+#	echo File to put in lib: $__LIBFILE__
 
-	exit
 	# Check if it exists or overwrite it.
-	IN_DB="$(dbm -s 'name' -w "name~$NAME" 2>/dev/null)"
+	IN_DB="$(dbm -s 'id' -w "name=$NAME" 2>/dev/null)"
 	[ ! -z "$IN_DB" ] && [ -z $DO_OVERWRITE ] && {
 		( 
 			printf "This library is already in your bashutil toolkit.\n"
 			printf "If you would like to update this library, use the "
-			printf "--overwrite flag to wipe the original.\n"
+			printf "%s\n" "--overwrite flag to wipe the original."
 		) > /dev/stderr
 		exit 1
-	}	
+	}
 
-
+	# Check if there are multiple ID's.
+	# There should not be.
+	# This is useful from minishell.
+	MULT=( $(printf "%s\n" $IN_DB) )
+	[ ${#MULT[@]} -gt 1 ] && {
+		(
+			printf "Multiple rows found with the same name.\n"
+			printf "Can't move any further.\n"
+		) > /dev/stderr
+		exit 1
+	}
+			
 	# Copying with the correct name if I've asked for one.
-	echo $ADD
-	[ -f "$ADD" ] && echo cp $CP_FLAGS $ADD $SRCLIB/$CLASS/$__LIBFILE__
+	[ -f "$__SRCFILE__" ] && {
+		cp $CP_FLAGS $__SRCFILE__ $SRCLIB/$__LIBFILE__
+	}
 
-	exit
-	# Or copy the buffer...
-#	[ ! -z "$BUFFER" ] && printf "%s" "$BUFFER" >> $SRCLIB/$CLASS/$__LIBFILE__ 
-
-	# Add to database.
-	LOCATION=
-	NAME=
-	CLASS=
-	CHECKSUM=
-	DESCRIPTION=
+	# Populate records.	
+	LOCATION="$__LIBFILE__"
+	NAME="$__LIBNAME__"
+	CLASS="$CLASS"
+	CHECKSUM="$(md5sum "$SRCLIB/$__LIBFILE__" | awk '{print $1}')"
+	DESCRIPTION="$SUMMARY"
 	DATE_CREATED="$(date +%s)"
 	DATE_LAST_MODIFIED="$(date +%s)"
 
+	# Add to database.
+	if [ ! -z $DO_OVERWRITE ] 
+	then
+		dbm \
+			--set "location=$LOCATION" \
+			--set "date_last_modified=$DATE_LAST_MODIFIED" \
+			--set "description=$SUMMARY" \
+			--where "id=$IN_DB" --echo
 
-	# Add blank line and add entry to manifest.
-#	LN=$(grep --line-number "# $CLASS" $LIB_MANIFEST | awk -F ':' '{print $1}')
-#	sed -i ${LN}G $LIB_MANIFEST 
-#	sed -i "$(( $LN + 1 ))s#.*#"${__LIBNAME__%%.?h}:$SUMMARY"#" $LIB_MANIFEST
-	
-	# Then add to lookup file.
-	# printf "${__LIBNAME__%%.?h}:$CLASS/$__LIBFILE__" >> $LOOKUP_MANIFEST
+		#dbm --select-all --echo
+	else
+		#printf '' > /dev/null
+		dbm --insert-from-mem
+	fi
 fi
 
 
@@ -531,30 +653,29 @@ fi
 # File mod
 if [ ! -z $DO_FILEMOD ]
 then
-	# Edit manifest too?
-	__SRCFILE__=$(grep "$SELECTION" $LOOKUP_MANIFEST | \
-		awk -F ':' '{print $2}') 
-	__FILECT__=$(grep "$SELECTION" $LOOKUP_MANIFEST | wc -l)
-
-	# Trying to do more than one?
-	if [ $__FILECT__ -gt 1 ]
-	then
-		printf "There are too many files matching."
-		exit 1
-	fi
-
-	# Make a more accessible name.
-	__SRCFILE__="$SRCLIB/$__SRCFILE__"
+	# Set up the table
+	TABLE="libs"
 
 	# remove
 	if [ ! -z $DO_REMOVE ]
 	then
-		# Remove from folder and manifest file.
-		[ -f "$__SRCFILE__" ] && rm $RM_FLAGS "$__SRCFILE__"
+		# Retrieve file from database.
+		__SRCFILE__="$(dbm --select 'file' --where "name=$SELECTION")"
 
-		# Drop the line from each manifest file.
-		sed -i "s#$(grep "$SELECTION" $LIB_MANIFEST)##" $LIB_MANIFEST
-		sed -i "s#$(grep "$SELECTION" $LOOKUP_MANIFEST)##" $LOOKUP_MANIFEST
+		# Does it exist at all?
+		if [ ! -z "$__SRCFILE__" ] && [ -f "$__SRCFILE__" ]
+		then 
+			# Remove the file.
+			rm $RM_FLAGS "$__SRCFILE__"
+
+			# Drop it from the database.
+			dbm --remove --where "name=$SELECTION"
+		else
+			(
+				printf "No library entry by the name $SELECTION found." 
+			) > /dev/stderr
+			exit 1
+		fi	
 	fi
 
 	# edit
@@ -613,3 +734,6 @@ fi
 
 [ ! -z $DO_QUERY ] && printf "Not done..."
 [ ! -z $DO_MERGE ] && printf "Not done..."
+
+# Clean up any temporary files still laying around.
+tmp_file -w
