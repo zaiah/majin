@@ -460,8 +460,8 @@ fi
 
 			# Set no logic.
 			[ ! -z "$NO_OPT_FROM_LIST" ] && {
-				if [ $( is_element_present_in "NO_OPT_FROM_LIST" $EACH_ARG ) == true ] || \
-					[ $( is_element_present_in "NO_OPT_FROM_LIST" ${EACH_ARG:1:${#EACH_ARG}} ) == true ]
+				if [ $( is_element_present_in "NO_OPT_FROM_LIST" "$EACH_ARG" ) == true ] || \
+					[ $( is_element_present_in "NO_OPT_FROM_LIST" "${EACH_ARG:1:${#EACH_ARG}}" ) == true ]
 				then
 					GENERATE_LOGIC_SET[$COUNTER]=true 
 				else
@@ -730,4 +730,4 @@ fi
 
 
 # Close off the remainder of the new library.
-[ ! -z $MAKE_LIBRARY ] && printf "}\n" 
+[ ! -z $MAKE_LIBRARY ] && printf "}\n" >> $FILENAME
