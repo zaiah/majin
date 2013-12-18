@@ -1,83 +1,77 @@
-
-id
-location
-name
-class
-checksum
-description
-date_created
-date_last_modified
-
-
-search_for 
-	add an option to be more literal (as in avoid programming rules, which will change slightly per shell or syntax, then you really need that whole compile thing....or at least a way to link to a function's result...)
-perhaps something like --add-to
-
-	add a library or some upgrade to something that already exists...
-
-when dying on options, MUST have something to tell which option is errant,
-and not print `usage`
-
-maintlib, either
-	create a library at the home directory, parse the date for when it was last done?
-
-	keep library within the program directory? (...)
-
-? does buildlib actually work?
-
-x need a way to create usage, and documentation for each new mini function...
-	(can work with buildlib's stuff to make this happen...)
-? usage should always work with stderr
-when compiling a library (
-	variables should be within their own file (or at the top of the new script, heavily depends on what's being written...)
-
-writing bu with the database within the program directory was kind of a bad idea...
-	rewrite to have a ${PROGRAM} directory
-
-Cvs or git can be used to pull down the repo of scripts
-
-Include buildunit
-	still have to spec this...
-
-Fix maintlib to add stuff
-
-
-
-
-Nothing to do
-Usage: ./buildlib
-	[ -  ]
-
-Library Compile Actions:
--k | --link-at <arg>          Link what is chosen at a certain directory.
--kw| --link-with <arg>        Link with the <arg> compiled in.
--w | --with <arg>             Build library with functions listed in <arg> 
--x | --without <arg>          Build library with functions listed in <arg> 
--z | --all-libs               Build library with functions listed in <arg> 
--n | --name <arg>             Give the library and its elements a consistent 
-                              name.
--q | --namespace <arg>        Build library functions with a different 
-                              naming convention.
--c | --comments               Include comments in library. (default includes comments :) )
--l | --list                   List all available functions. 
--? | --describe <arg>         Describe function <arg>.
---specify-with                Use a menu to choose library list.
-
-Library Runtime Actions:
--e | --executables <arg>      Convert names in <arg> to variables that alias
-                              programs located in your $PATH
--s | --static <arg>           Convert names in <arg> to variables pointing to 
-                              immutable values. 
--ff| --functions-for <list> Generate some skelelon functions.
-                            ( echo '...' is default )
--d | --depcheck               Generate code to run a dependency check.
--s | --standard_dirs <arg>    Convert names in <arg> to variables that 
-                              reference your program's common directories.
--u | --security               Generate code to secure a shell script.
--a | --set-all <arg>          Set all flags that do not require an argument.
-                              <arg> refers to library name.
-
-General Options:
--v | --verbose                Be verbose in output.
--h | --help                   Show this help and quit.
-
+bu (majin)
+	portability issues
+		may need to get creative with aliases if running on ksh, zsh, csh and bash
+			also check out the `enable` builtin
+		getopts will definitely change
+		local
+		printf
+		trap is a Bash builtin, what about the other three?
+		
+	maintlib
+		--get / --sync,  updates the local script repository
+	
+	buildopts
+		settings() 
+			generates a settings file somewhere... 
+			(there is no standard for this, but it's sensible)
+		no-conflict (resolve conflicts when --compiling) 
+			(should be an automatic thing, not an option)
+		empty local vars ( local VAR= ) and unset VAR(s) at the top and bottom of script, respectively...
+			(have to be careful, I know local is NOT portable across different shells, 
+			a problem b/c ksh is going to be used a lot...)
+		--namespace
+			This is going to have the heat turned up on it now.  Whatever way to go about it...
+			1. Generate list correctly at this stage, can use unset at the end.
+			2. Registering each name in an array is good too (but TIME consuming...)
+			3. Locate all variable names and go ham...
+			`declare`
+		[ vartypes --snake-case, --upper-case, --capitalize ]
+				[unset, set, ?] XXX  (replace even within quotes...)
+				XXX= (only when NOT within quotes)
+				$XXX
+				${XXX}
+				${YYY:-$XXX}
+		--printerr / error
+			redirect <text> > /dev/stderr and test to see if /dev/stderr exists
+			the /dev/stderr check needs only be done once (per system preferably...)
+			( similar to other checks (don't generate the error message handler if option not specified) )
+		--opteval - add a function to define how to handle arguments
+			( without manifests, this one could prove VERY troubling...)
+			( but the gist of it is, resolve arguments that should not be blank by running
+			a loop to check for DO_X's that are true and check that their arguments are filled as well )
+			--disregard (maybe you only want to log the error, or support flags vs. args)
+			--die
+			--...
+		--trap - these should also be done every time
+			come up with a good way to define how to handle the different signals.
+		when running traps (have to be sure that the system is capable of handling the messages)
+			check that the signals are even supported...
+		--log
+			a steady way to log errors.... (maybe this instead of /dev/stderr)
+		--library
+			Code always has to have a record of what vars exist.
+			Everything is global now, so it will be a huge problem....
+			Something to package all of the variables with a namespace is best..
+		--test 
+			Run a test using --shell <x> to change behavior
+			buildunit should take this into account as well... and record the results...
+			Actually, very hard to tell where this should go....
+			
+	buildproj
+		builds a project (a bash project, but um.... this seems silly....)
+		install and uninstall etc should be built (this can be done other ways...)
+	
+	buildunit
+		-- i just like typing double dashes.... :)
+	
+	need a way to run a test after the fact (like after everything has been built:
+		rmmg will support --pre and --post as will some other scripts...
+		then something like
+			buildunit --test --this <x> | flame
+			(via rmmg:) git commit -m "this"
+			
+	bu-term
+		-- use for testing out and evaluating different libraries....
+		WITHOUT making them part of your environment... (in case names clash, etc.)
+		you can open your own shell and do this...
+		include something to choose just these (can be within buildlib)
