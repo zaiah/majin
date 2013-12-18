@@ -60,6 +60,7 @@ usage() {
 
 -i | --install                desc
 -u | --uninstall              desc
+-p | --update                 desc
 -a | --at <arg>               desc
 -v|--verbose                  Be verbose in output.
 -h|--help                     Show this help and quit.
@@ -68,10 +69,11 @@ usage() {
 }
 
 
-# ....
+
+# Exit.
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
 
-# ....
+# optionss
 while [ $# -gt 0 ]
 do
    case "$1" in
@@ -80,6 +82,9 @@ do
       ;;
      -u|--uninstall)
          UNINSTALL=true
+      ;;
+     -p|--update)
+         UPDATE=true
       ;;
      -a|--at)
          AT=true

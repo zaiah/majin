@@ -576,6 +576,26 @@ fi
 	# (now namespaces are more important than ever...)
 	( 
 		printf "%s\n" "#!/bin/bash" 
+
+		printf '_usage() {
+   STATUS="${1:-0}"
+   echo "Usage: ./$LIBPROGRAM
+	[ -  ]
+
+-r | --recompile              desc
+-w | --with <arg>             desc
+-w | --without <arg>          desc
+-v | --version                desc
+-s | --single-file            desc
+-v | --verbose                Be verbose in output.
+-h | --help                   Show this help and quit.
+"
+   exit $STATUS
+}
+	
+	[ -z "$#" ] && printf "Nothing to do" > /dev/stderr && _usage 1
+'
+
 		printf "%s\n\n" '__BULIBSRC__="$(dirname $(readlink -f $0))/lib"'
 		printf "# Hold library names and checksums.\n"
 		printf "%s\n" "BASHUTIL_LIBS=(" 
@@ -586,6 +606,9 @@ fi
 		do
 			# Checksum of current file.
 			# md5sum $COPIED_LIB
+#__BULIBSRC__="$(dirname $(readlink -f $0))/lib"
+#printf "# Hold library names and checksums.\n"
+# BASHUTIL_LIBS=(" 
 
 			COPIED_LIB="$LINK_AT/$(basename $FILE_FOUND)"
 			if [ -f "$COPIED_LIB" ] 
@@ -605,8 +628,10 @@ fi
 			printf "\t%s" "\"$(basename $FILE_FOUND)\"" # >> $LIB_INC
 
 			# Store the md5sum within the generated library file.
-			# If the two are different, then updating can be automatically done...
-			printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | awk '{print $1}')" # >> $LIB_INC
+			# If the two are different, then updating can be 
+			# automatically done...
+			printf "%s\n" " # $(md5sum $SRCLIB/$FILE_FOUND | \
+				awk '{print $1}')" # >> $LIB_INC
 
 			# Link.
 			[ ! -z $VERBOSE ] && LN_FLAGS="-v" || LN_FLAGS=""
@@ -622,6 +647,9 @@ fi
 		printf "\tsource \"\$__BULIBSRC__/\$__MY_LIB__\"\n"
 		printf "done\n" 
 	) > $LIB_INC
+
+	# Make the file executable.
+	chmod +x $LIB_INC
 
 	# Test it.
 	tmp_file -n TESTLIB 

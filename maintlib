@@ -70,9 +70,6 @@ General:
 -g | --get <arg>              Add a new library. 
 -q | --query                  Query available libraries.
 -o | --overwrite              Overwrite a class when a library already exists.
---lookup                      Show the lookup table.
---lib                         Check summaries and names within bashutil. 
---listlib                     List out the library directory.
 -v | --verbose                Be verbose in output.
 -h | --help                   Show this help and quit.
 "
@@ -80,16 +77,8 @@ General:
 }
 
 
-# Some local functions
-add_to_library(){
-	printf '...'
-}
-
-
 # Get class names.
 get_class_names() {
-#  	grep '#' $LIB_MANIFEST | sed 's/# //'
-#	dbm --columns --of libs
 	dbm --distinct 'class' --from libs
 }
 
