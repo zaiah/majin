@@ -68,7 +68,10 @@ usage() {
 }
 
 
+# ....
 [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+
+# ....
 while [ $# -gt 0 ]
 do
    case "$1" in

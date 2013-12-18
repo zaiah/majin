@@ -29,6 +29,7 @@
 # THE SOFTWARE.
 #-----------------------------------------------------#
 BINDIR="$(dirname "$(readlink -f $0)")"
+BINDIR="$HOME/projects/bashutil/bashutil"
 SELF="$(readlink -f $0)"
 LIB="${BINDIR}/lib/__.sh"
 source $LIB
@@ -100,7 +101,7 @@ is_element_present_in() {
 	echo $STAT
 }
 
-aaatitytwochainz
+#aaatitytwochainz
 
 titytwochainz  (   )      {	# Flambob  # Ace rocket
 	printf "oh lawd..."
@@ -112,7 +113,7 @@ titytwochainz
 
 
 # Die on no options.
-[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+# [ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
 
 
 # Options.

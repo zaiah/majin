@@ -91,7 +91,6 @@ get_class_names() {
 #  	grep '#' $LIB_MANIFEST | sed 's/# //'
 #	dbm --columns --of libs
 	dbm --distinct 'class' --from libs
-	dbm --select-all --from libs
 }
 
 
@@ -701,21 +700,24 @@ if [ ! -z $DO_ADD_CLASS ]
 then
 	# Choose a class.
 	CLASS_NAME_ARR="$(get_class_names | tr [A-Z] [a-z])"
-	if [[ $(is_element_present_in CLASS_NAME_ARR "$CLASS_TO_ADD") == 'true' ]]
-	then
-		printf 'This class already exists.'
+	[[ $(is_element_present_in CLASS_NAME_ARR "$CLASS_TO_ADD") == 'true' ]] && {
+		printf 'This class already exists.' > /dev/stderr
 		exit 1
-	fi
+	}
 
 	# Add to lib 
 	printf "\n# $CLASS_TO_ADD\n" >> $LIB_MANIFEST
+
+	# 
+	# dbm --insert-into-mem
 fi
 
 
 # Class removal
 if [ ! -z $DO_REMOVE_CLASS ]
 then
-	printf '...'
+	# dbm --remove --where class="$CLASS"
+	printf '' > /dev/null
 fi
 
 

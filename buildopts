@@ -720,9 +720,15 @@ fi
 				fi
 
 				# End this logic. 
-				[ -z $SHORT_IF ] && printf "then\n"
-				printf "   printf '' > /dev/null\n"
-				[ ! -z $SHORT_IF ] && printf "}\n" || printf "fi\n" 
+				if [ -z $SHORT_IF ] 
+				then
+					printf "then\n   printf '' > /dev/null\nfi\n"
+				else
+					printf "   printf '' > /dev/null\n"
+					printf "}\n"
+#					printf "   printf '' > /dev/null\n"
+#					[ ! -z $SHORT_IF ] && printf "}\n" || printf "fi\n" 
+				fi
 			done
 		fi
 	}
