@@ -1,0 +1,11 @@
+o: flocka
+v: booty
+s: Displays 'hello, world' in classic form.
+c: Displays 'hello world
+d: 
+Displays 'hello, world' in classic form.  
+It doesn't matter who you are, everybody can get down with the flocka flame.
+f: 
+	tesla --roadster
+	echo 'xxx'
+	ls $JOSHER
