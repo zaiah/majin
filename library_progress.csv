@@ -30,3 +30,7 @@ tmp_file,,,,,,,,
 typecheck,,,,x,,,,replaced by: is
 where,,,,x,,,,replaced by: dbm or dba
 arg,,,,,,x,,
+netcatsrv,,,,,x,,,
+,,,,,x,,,
+,,,,,x,,,
+,,,,,x,,,
