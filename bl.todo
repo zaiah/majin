@@ -15,10 +15,10 @@ bu (majin)
 		printf
 		trap is a Bash builtin, what about the other three?
 
-		need save_to (how to include)
+		
+	need save_to (how to include)
 	
 
-	
 	manifest_parse
 		--get <section>
 		--usage
@@ -33,6 +33,8 @@ bu (majin)
 
 
 	buildopts
+		is it wiser to seperate all the functions of this code b/c its so large?
+		use fmt on license print out
 		settings() 
 			generates a settings file somewhere... 
 			(there is no standard for this, but it's sensible)

@@ -30,8 +30,11 @@
 #-----------------------------------------------------#
 BINDIR="$(dirname "$(readlink -f $0)")"
 SELF="$(readlink -f $0)"
+
 LIB="${BINDIR}/lib/__.sh"
 source $LIB
+
+LIC="${BINDIR}/licenses"
 PROGRAM="buildopts"
 
 
@@ -307,7 +310,7 @@ esac
 
 
 # Print to file, stdout or temp 
-(
+{
 	# Use a shebang line to invoke the right shell.
 	[ -z $MAKE_LIBRARY ] && printf "#!/bin/${SHELL} -\n"
 
@@ -324,47 +327,18 @@ esac
 
 	# Choose licenses.
 	[ ! -z $SELECT_LICENSE ] && {
+		printf -- '#-----------------------------------------------------#\n# Licensing\n# ---------\n'
 		case $LICENSE in
-			mit)
-	LICENSE_BODY='#-----------------------------------------------------#
-	# Licensing
-	# ---------
-	# 
-	# Copyright (c) 2013 Vokayent
-	# 
-	# Permission is hereby granted, free of charge, to any person obtaining a copy
-	# of this software and associated documentation files (the "Software"), to deal
-	# in the Software without restriction, including without limitation the rights
-	# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	# copies of the Software, and to permit persons to whom the Software is
-	# furnished to do so, subject to the following conditions:
-	# 
-	# The above copyright notice and this permission notice shall be included in
-	# all copies or substantial portions of the Software.
-	# 
-	# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	# THE SOFTWARE.
-	#-----------------------------------------------------#\n'
+			mit|MIT|gpl|GPL|apache|APACHE|eclipse|ECLIPSE)
+				cat ${LIC}/${LICENSE}.txt | sed 's/^/# /'
 			;;
-
-			gpl)
-	LICENSE_BODY="
-
-	"
-			;;
-
 		esac
-		printf "$LICENSE_BODY"
+		printf -- '#-----------------------------------------------------#\n'
 	}
 
 	# Print the function name.
 	[ ! -z $MAKE_LIBRARY ] && printf "${NAME}() {\n"
-) > $FILENAME
+} > $FILENAME
 
 
 # Make it look like a library.
@@ -381,7 +355,8 @@ fi
 # Print to standard out or file.
 
 	# ...
-(	if [ ! -z $MAKE_LIBRARY ] 
+{	
+	if [ ! -z $MAKE_LIBRARY ] 
 	then 
 		# Use a different name altogether.
 		printf "$PROGNAME=\"${NAME}\"\n"
@@ -732,7 +707,7 @@ fi
 			done
 		fi
 	}
-) | sed "s/^/$ADD_TAB/g" >> $FILENAME
+} | sed "s/^/$ADD_TAB/g" >> $FILENAME
 
 
 # Close off the remainder of the new library.
