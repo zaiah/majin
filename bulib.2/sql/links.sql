@@ -1,0 +1,5 @@
+CREATE TABLE links (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	seed TEXT,
+	file TEXT
+);
