@@ -18,6 +18,16 @@ bu (majin)
 		need save_to (how to include)
 	
 
+	
+	manifest_parse
+		--get <section>
+		--usage
+		--description (for options)
+		--options
+		--man
+		--html
+		--troff
+		
 	maintlib
 		--get / --sync,  updates the local script repository
 
@@ -69,12 +79,16 @@ bu (majin)
 			buildunit should take this into account as well... and record the results...
 			Actually, very hard to tell where this should go....
 			
-	buildproj
+			
+	buildproj / part of buildlib or maintlib
 		builds a project (a bash project, but um.... this seems silly....)
 		install and uninstall etc should be built (this can be done other ways...)
 	
+	
 	buildunit
 		-- i just like typing double dashes.... :)
+		--debug (use set -o debug)
+		--test (some code with other shells, but buildopts may already have this...)
 	
 	need a way to run a test after the fact (like after everything has been built:
 		rmmg will support --pre and --post as will some other scripts...
