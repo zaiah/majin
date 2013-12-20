@@ -1,0 +1,26 @@
+# Default Shells per OS
+
+Most Unix systems come with some form of a shell.  The below is a list of the most common ones installed by default on different systems with no additional work out of the box.  If all else fails, sh is the closest to POSIX compliance one can get.
+
+
+openbsd = ksh via pdksh ( http://www.openbsd.org/faq/faq10.html#rootshell )
+
+solaris = sh ( http://docs.oracle.com/cd/E19455-01/805-6331/6j5vgg67n/index.html )
+ 
+
+# Most Common Shells
+
+Here is a list of the most common shells to run into.
+( More info here: http://docs.oracle.com/cd/E19683-01/806-7612/customize-89075/index.html )
+
+/bin/sh – Bourne shell 
+/bin/bash – Bourne Again shell 
+/bin/csh – C shell 
+/bin/ksh – Korn shell 
+/bin/tcsh – TC shell 
+/bin/zsh – Z shell 
+
+
+# Initialization methods
+
+`which` is a pretty decent choice.  This is not a builtin and won't be on every system.  Maybe.

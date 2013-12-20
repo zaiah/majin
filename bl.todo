@@ -34,6 +34,7 @@ bu (majin)
 
 	buildopts
 		is it wiser to seperate all the functions of this code b/c its so large?
+		ugly option support ( a vs. -a)
 		use fmt on license print out
 		settings() 
 			generates a settings file somewhere... 
