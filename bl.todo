@@ -14,8 +14,38 @@ bu (majin)
 				...etc
 
 		SETTINGS and INSTALL
-
-
+	
+	core test
+		*requires tmp_file (and all the test code)
+		*hence requires a lib/__
+		options
+		traps
+		defaults
+		error
+			log
+			stderr
+		local vars and unsetting (there may be a way to do with a particular trap... or some other nonsense with declare)
+	
+	
+	core library
+		session files
+		(can run once b/c system can store this data)
+		(the system can check at first run to glean important info and tell if the host has changed: e.g.:
+			MAC address (is this a security issue?)
+			Filesystem size and stuff...
+		installation
+		permute? (b/c of options)
+		*settings
+		
+		
+	permute
+		t|this|these
+		delimiter
+			choose a different delimiter
+		case
+			eval the permuted options or flags and evaluate as a case statement
+		no-conflict?
+		
 	making everything local
 		after the fact with declare?
 		make a temporary file, source the script in question, use declare
@@ -27,6 +57,9 @@ bu (majin)
 		traps, (s,p,d)trace
 
 	sensible defaults
+		settings
+			--from
+			--vartypes [snake-case, uppercase, capitalize]
 		install
 			add to installation (--config) to set where a program's 
 				config files should go
@@ -39,7 +72,7 @@ bu (majin)
 			but I don't necessarily need it to succeed...
 		local vars
 		unset vars (for no other conflicts)
-		error () { printf $1 > /dev/stderr }
+-		error () { printf $1 > /dev/stderr }
 			choose file, stderr or something else...
 x		library references
 		option evaluation (blank, flags, etc)
@@ -55,7 +88,8 @@ F	need save_to (how to include)
 		is there a quick way to do import?
 
 	portability issues
-		may need to get creative with aliases if running on ksh, zsh, csh and bash
+		may need to get creative with aliases if running on: 
+			ksh, zsh, csh and bash
 			also check out the `enable` builtin
 		getopts will definitely change
 		local
@@ -91,10 +125,14 @@ F	need save_to (how to include)
 
 
 buildopts
+	Fix "unknown arg received." (Does not tell which argument caused the problem...)
+	option glob at top line
+	suspend verbose, help
+	aliases vs $NAMES on common programs
 	accept-single-argument
 		(for when you want something like: bu bob, where bob is the name to create something with)
 	support all the different languages from the build stage 
-	ugly option support ( a vs. -a)
+	ugly option support ( a vs. -a )
 	use fmt on license print out
 	settings() 
 		generates a settings file somewhere... 
@@ -107,6 +145,7 @@ buildopts
 		at the top and bottom of script, respectively...
 		(have to be careful, I know local is NOT portable across different shells, 
 		a problem b/c ksh is going to be used a lot...)
+	--between marker=<this> (<this> is a function () {}, and omitting '=' will search the manifest for the script in question)
 	--namespace
 		This is going to have the heat turned up on it now.  Whatever way to go about it...
 		1. Generate list correctly at this stage, can use unset at the end.
