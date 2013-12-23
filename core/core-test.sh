@@ -105,7 +105,8 @@ fi
 if [ ! -z $DO_DEFAULTS ]
 then
 	source files.sh
-   printf '' > /dev/null
+
+	fd --list --integer
 fi
 
 # errors

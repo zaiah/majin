@@ -19,11 +19,17 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
  maintlib
  term
  update
- seplib=seplib {
+ core=core {
+  _libupdate_.sh
+  core-test.sh
   error.sh
-  default_file_check.sh
+  files.sh
   opteval.sh
-  trapper.sh
+  traps.sh
+  lib=lib {
+   __.sh
+   tmp_file.sh
+  }
  }
  extlib=extlib {
   _libgen_.sh

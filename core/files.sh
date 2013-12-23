@@ -3,12 +3,14 @@
 #
 # Does some quick checks for common file descriptors.
 #-----------------------------------------------------#
-dfc() {
-	LIBPROGRAM="dfc"
+fd() {
 	# Static variables
-	STDERR=
-	STDOUT=
-	STDIN=
+	STDERR="/dev/stderr"
+	STDOUT="/dev/stdout"
+	STDIN="/dev/stdin"
+
+	# Program name.
+	local LIBPROGRAM="dfc"
 	
 	# dfc_usage - Show usage message and die with $STATUS
 	dfc_usage() {
@@ -23,7 +25,7 @@ dfc() {
                                  for standard output. 
 	-i | --stdin                  Return the first valid file descriptor
                                  for standard input. 
-	-i | --integer                Return the integer pertaining to the above
+	-g | --integer                Return the integer pertaining to the above
                                  options. 
 	-v | --verbose                Be verbose in output.
 	-h | --help                   Show this help and quit.
@@ -48,10 +50,10 @@ dfc() {
 	     -o|--stdout)
 	         DO_STDOUT=true
 	      ;;
-	     -s|--stdin)
+	     -i|--stdin)
 	         DO_STDIN=true
 	      ;;
-	     -i|--integer)
+	     -g|--integer)
 	         DO_INTEGER=true
 	      ;;
 	     -v|--verbose)
@@ -62,7 +64,7 @@ dfc() {
 	      ;;
 	     --) break;;
 	     -*)
-	      printf "Unknown argument received.\n" > /dev/stderr;
+	      printf "Unknown argument received: $1\n" > /dev/stderr;
 	      dfc_usage 1
 	     ;;
 	     *) break;;
@@ -72,26 +74,41 @@ dfc() {
 	
 	# list
 	[ ! -z $DO_LIST ] && {
-	   printf '' > /dev/null
+	  	[ -f $STDERR ] && STDERR="/dev/stderr" || STDERR="/proc/self/fd/2" 
+	  	[ -f $STDOUT ] && STDOUT="/dev/stdout" || STDOUT="/proc/self/fd/1" 
+	  	[ -f $STDIN ] && STDIN="/dev/stdin" || STDIN="/proc/self/fd/0" 
+
+		if [ ! -z $DO_INTEGER ]
+		then
+			printf "%s\n" "Standard Output: 1"
+			printf "%s\n" "Standard Input: 0"
+			printf "%s\n" "Standard Error: 2"
+		else	
+			printf "%s\n" "Standard Output: $STDOUT"
+			printf "%s\n" "Standard Input: $STDIN"
+			printf "%s\n" "Standard Error: $STDERR"
+		fi
 	}
 	
 	# stderr
 	[ ! -z $DO_STDERR ] && {
-	   printf '' > /dev/null
+		[ -f $STDERR ] && {
+			[ ! -z $DO_INTEGER ] && printf "%d" 2 || printf "%s" "$FNAME" 
+		}
 	}
 	
 	# stdout
 	[ ! -z $DO_STDOUT ] && {
-	   printf '' > /dev/null
+		[ -f $STDERR ] && {
+			[ ! -z $DO_INTEGER ] && printf "%d" 2 || printf "%s" "$FNAME" 
+		}
 	}
 	
 	# stdin
 	[ ! -z $DO_STDIN ] && {
-	   printf '' > /dev/null
+		[ -f $STDERR ] && {
+			[ ! -z $DO_INTEGER ] && printf "%d" 2 || printf "%s" "$FNAME" 
+		}
 	}
 	
-	# integer
-	[ ! -z $DO_INTEGER ] && {
-	   printf '' > /dev/null
-	}
 }

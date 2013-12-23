@@ -35,12 +35,14 @@ opteval() {
 	   echo "Usage: ./$LIBPROGRAM
 		[ -  ]
 	
-	-d | --die                    desc
-	-d | --disregard              desc
-	-f | --flag                   desc
-	-n | --not-flag               desc
-	-d | --double-dash            desc
-	-o | --optional               desc
+	-d | --die                    Die on receiving no argument where one is  
+	                              expected.
+	-d | --disregard              Disregard any missing arguments. 
+	-f | --flag                   Die if the argument is not a flag. 
+	-n | --not-flag               Die if the argument is a flag. 
+	-d | --double-dash            Let opteval know when to expect a double-dash 
+	-o | --optional               Let opteval know when certain argumetns are 
+	                              optional.
 	-v | --verbose                Be verbose in output.
 	-h | --help                   Show this help and quit.
 	"
@@ -58,7 +60,7 @@ opteval() {
 	     -d|--die)
 	         DO_DIE=true
 	      ;;
-	     -d|--disregard)
+	     -s|--disregard)
 	         DO_DISREGARD=true
 	      ;;
 	     -f|--flag)
@@ -67,7 +69,7 @@ opteval() {
 	     -n|--not-flag)
 	         DO_NOT_FLAG=true
 	      ;;
-	     -d|--double-dash)
+	     -b|--double-dash)
 	         DO_DOUBLE_DASH=true
 	      ;;
 	     -o|--optional)
