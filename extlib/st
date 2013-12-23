@@ -1,0 +1,20 @@
+#------------------------------------------------------
+# save_to_test.sh 
+# 
+# Testing...
+#-----------------------------------------------------#
+
+source save.sh
+
+# Makes it very difficult to save...
+bla="THIS
+THIS thing
+That Thing THIS"
+
+
+#shopt alias
+grep 'THIS' $0 | save -t VAR
+VB=`grep 'THIS' $0`
+
+echo $VAR
+echo "$VB"
