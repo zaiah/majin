@@ -12,6 +12,7 @@ That Thing THIS"
 
 
 #shopt alias
-grep 'THIS' $0 | sed 's/^/### /' | save --diag -t VAR
+#grep 'THIS' $0 | save -t VAR
+echo "abc\ndef\n" | save -t VAR
 
-echo $VAR
+echo "$VAR"

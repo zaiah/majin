@@ -10,6 +10,20 @@
 # --undo          - Carry out the uninstall routine.
 #-----------------------------------------------------#
 installation() {
+	# Localize everything.
+	# (This can happen with an array)
+#	local PROGRAM_DIR=
+#	local EXECUTE_INSTALL_ROUTINE=
+#	local EXECUTE_UNINSTALL_ROUTINE=
+#	local SW_INSTALL=
+#	local INITIAL_INSTALL_DIR=
+#	local LN_ARGS=
+#	local SW_LN_FLAGS=
+#	local SW_MKDIR_FLAGS=
+#	local SW_CHMOD_FLAGS=
+#	local FILE=
+#	local UN_RM_FLAGS=
+
 	# A file to keep track of where files have been linked.
 	# Pretty sure PROGRAM_DIR is supposed to be INSTALL_DIR
 	if [ ! -z "${PROGRAM_DIR}" ] 

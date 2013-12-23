@@ -50,6 +50,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #-----------------------------------------------------#
+BINDIR="$(dirname "$(readlink -f $0)")"
+SELF="$(readlink -f $0)"
+
+LIB="${BINDIR}/lib/__.sh"
+source $LIB
+
+PROGRAM="bu-install"
 
 # usage message
 # Show a usage message and die.
@@ -58,10 +65,9 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--i | --install                desc
--u | --uninstall              desc
--p | --update                 desc
--a | --at <arg>               desc
+-i | --install-to <arg>       Installs bashutil to <arg> 
+-u | --uninstall              Uninstalls bashutil 
+-p | --update                 Updates? 
 -v|--verbose                  Be verbose in output.
 -h|--help                     Show this help and quit.
 "
@@ -71,25 +77,27 @@ usage() {
 
 
 # Exit.
-[ -z $BASH_ARGV ] && printf "Nothing to do\n" && usage 1
+[ -z $BASH_ARGV ] && printf "Nothing to do\n" > /dev/stderr && usage 1
 
 # optionss
 while [ $# -gt 0 ]
 do
    case "$1" in
-     -i|--install)
+     -d|--deploy)
+         DEPLOY=true
+        	shift
+			CONFIG_DIR="$1"
+      ;;
+     -i|--install-to)
          INSTALL=true
+			shift
+         INSTALL_DIR="$1"
       ;;
      -u|--uninstall)
          UNINSTALL=true
       ;;
      -p|--update)
          UPDATE=true
-      ;;
-     -a|--at)
-         AT=true
-         shift
-         AT_ARG=$1
       ;;
       -v|--verbose)
         VERBOSE=true
@@ -106,17 +114,23 @@ do
 shift
 done
 
+if [ ! -z $DEPLOY ]
+then
+
+fi
+
 if [ ! -z $INSTALL ]
 then
-   echo '...'
+	[ -z "$INSTALL_DIR" ] && {
+		printf "No install directory found." > /dev/stderr
+	}
+
+	installation --do --to $INSTALL_DIR \
+		--these "buildlib,buildlic,buildopts,buildsql,buildunit,maintlib"
 fi
 
 if [ ! -z $UNINSTALL ]
 then
-   echo '...'
+  	installation --undo 
 fi
 
-if [ ! -z $AT ]
-then
-   echo '...'
-fi

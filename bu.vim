@@ -1,19 +1,29 @@
 
 bashutil=/home/zaiah/projects/bashutil/bashutil {
  HIER
+ INSTALL
  LICENSE
  PROGRAM_DIR
  README.md
+ SHELLS
  _libupdate_.sh
  bl.todo
+ bu.vim
  buildlib
  buildlic
  buildopts
  buildsql
+ buildunit
  install
  library_progress.csv
  maintlib
+ term
  update
+ seplib=seplib {
+  error.sh
+  default_file_check.sh
+  opteval.sh
+ }
  extlib=extlib {
   _libgen_.sh
   dbm.sh
@@ -22,10 +32,8 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
   save_blank.sh
   save_to.sh
   save_to_test.sh
+  st
   vars.sh
- }
- old_files=old_files {
-  buildlib.2013-12-06
  }
  bulib=bulib {
   a.sh
@@ -109,17 +117,19 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
   mit.txt
  }
  sql=sql {
+  classes.sql
  }
  workspace=workspace {
   buildsql
   extract_real_match.sh
   g
   m.sh
-  manifests.sh
   manifest_build.sh
   manifest_parse.sh
-  test.manifest
+  manifests.sh
+  mtest.sh
   push_option_alpha.sh
+  test.manifest
   x=x {
    y=y {
     z=z {
@@ -128,5 +138,6 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
     }
    }
   }
+ }
  }
 }

@@ -1,6 +1,46 @@
 bu (majin)
-	--install 
-		installation should be automatic too
+	generate program_dirs:
+		lib -
+			all the libraries one collects over time and places everywhere....
+
+		licenses -
+			all a company's licenses including the basics that 
+
+		core (just possibly....)
+			a folder for custom functions that improve upon any built-ins, like:
+				--printerr
+				--opteval
+				--trap
+				...etc
+
+		SETTINGS and INSTALL
+
+	making everything local
+		after the fact with declare?
+		make a temporary file, source the script in question, use declare
+			and add to the script
+		unsets can be handled too
+
+
+	sensible defaults
+		install
+			add to installation (--config) to set where a program's 
+				config files should go
+		trap
+		standard function exit 
+			like if I make a mistake or if an argument isn't specified,
+			but I don't necessarily need it to succeed...
+		local vars
+		unset vars (for no other conflicts)
+		error () { printf $1 > /dev/stderr }
+			choose file, stderr or something else...
+x		library references
+		option evaluation (blank, flags, etc)
+x		usage
+x		self and selfdir
+		default files ( stderr, stdin, stdout )
+	
+F	need save_to (how to include)
 
 	rebuild libraries at least once
 		--get should create a csv/tsv
@@ -14,112 +54,120 @@ bu (majin)
 		local
 		printf
 		trap is a Bash builtin, what about the other three?
+			can be called on the fly at the top
+		generate portability
+			sh
+			ksh
+			bash
+			zsh
 
-		
-	need save_to (how to include)
+		compat
+			sql
+			maintlib can run tests to set compatibility for each of the scripts written..
+
+	build_by_convention (?)
+		builds some file with some stuff and junk
 	
+	a custom version of this can be used to generate manifests....
 
 	manifest_parse
-		--get <section>
 		--usage
 		--description (for options)
 		--options
 		--man
 		--html
 		--troff
+		--get <section> (filters output of any of the above)
 		
 	maintlib
 		--get / --sync,  updates the local script repository
 
 
-	buildopts
-		is it wiser to seperate all the functions of this code b/c its so large?
-		ugly option support ( a vs. -a)
-		use fmt on license print out
-		settings() 
-			generates a settings file somewhere... 
-			(there is no standard for this, but it's sensible)
-		no-conflict (resolve conflicts when --compiling) 
-			(should be an automatic thing, not an option)
-		empty local vars ( local VAR= ) and unset VAR(s) at the top and bottom of script, respectively...
-			(have to be careful, I know local is NOT portable across different shells, 
-			a problem b/c ksh is going to be used a lot...)
-		--namespace
-			This is going to have the heat turned up on it now.  Whatever way to go about it...
-			1. Generate list correctly at this stage, can use unset at the end.
-			2. Registering each name in an array is good too (but TIME consuming...)
-			3. Locate all variable names and go ham...
-			`declare`
-		[ vartypes --snake-case, --upper-case, --capitalize ]
-				[unset, set, ?] XXX  (replace even within quotes...)
-				XXX= (only when NOT within quotes)
-				$XXX
-				${XXX}
-				${YYY:-$XXX}
-		--printerr / error
-			redirect <text> > /dev/stderr and test to see if /dev/stderr exists
-			the /dev/stderr check needs only be done once (per system preferably...)
-			( similar to other checks (don't generate the error message handler if option not specified) )
-		--opteval - add a function to define how to handle arguments
-			( without manifests, this one could prove VERY troubling...)
-			( but the gist of it is, resolve arguments that should not be blank by running
-			a loop to check for DO_X's that are true and check that their arguments are filled as well )
-			--disregard (maybe you only want to log the error, or support flags vs. args)
-			--die
-			--...
-		--trap - these should also be done every time
-			come up with a good way to define how to handle the different signals.
-		when running traps (have to be sure that the system is capable of handling the messages)
-			check that the signals are even supported...
-		--log
-			a steady way to log errors.... (maybe this instead of /dev/stderr)
-		--library
-			Code always has to have a record of what vars exist.
-			Everything is global now, so it will be a huge problem....
-			Something to package all of the variables with a namespace is best..
-		--test 
-			Run a test using --shell <x> to change behavior
-			buildunit should take this into account as well... and record the results...
-			Actually, very hard to tell where this should go....
-			
-			
-	buildproj / part of buildlib or maintlib
-		builds a project (a bash project, but um.... this seems silly....)
-		install and uninstall etc should be built (this can be done other ways...)
+buildopts
+	accept-single-argument
+		(for when you want something like: bu bob, where bob is the name to create something with)
+	support all the different languages from the build stage 
+	ugly option support ( a vs. -a)
+	use fmt on license print out
+	settings() 
+		generates a settings file somewhere... 
+		(there is no standard for this, but it's sensible)
+	no-conflict 
+		(resolve conflicts when --compiling) 
+		(should be an automatic thing, not an option)
+	empty local vars 
+		( local VAR= ) and unset VAR(s) 
+		at the top and bottom of script, respectively...
+		(have to be careful, I know local is NOT portable across different shells, 
+		a problem b/c ksh is going to be used a lot...)
+	--namespace
+		This is going to have the heat turned up on it now.  Whatever way to go about it...
+		1. Generate list correctly at this stage, can use unset at the end.
+		2. Registering each name in an array is good too (but TIME consuming...)
+		3. Locate all variable names and go ham...
+		`declare`
+	[ vartypes --snake-case, --upper-case, --capitalize ]
+			[unset, set, ?] XXX  (replace even within quotes...)
+			XXX= (only when NOT within quotes)
+			$XXX
+			${XXX}
+			${YYY:-$XXX}
+	--printerr / error
+		redirect <text> > /dev/stderr and test to see if /dev/stderr exists
+		the /dev/stderr check needs only be done once (per system preferably...)
+		( similar to other checks (don't generate the error message handler if option not specified) )
+	--opteval - add a function to define how to handle arguments
+		( without manifests, this one could prove VERY troubling...)
+		( but the gist of it is, resolve arguments that should not be blank by running
+		a loop to check for DO_X's that are true and check that their arguments are filled as well )
+		--disregard (maybe you only want to log the error, or support flags vs. args)
+		--die
+		--...
+	--trap - these should also be done every time
+		come up with a good way to define how to handle the different signals.
+	when running traps (have to be sure that the system is capable of handling the messages)
+		check that the signals are even supported...
+	--log
+		a steady way to log errors.... (maybe this instead of /dev/stderr)
+	--library
+		Code always has to have a record of what vars exist.
+		Everything is global now, so it will be a huge problem....
+		Something to package all of the variables with a namespace is best..
+	--test 
+		Run a test using --shell <x> to change behavior
+		buildunit should take this into account as well... and record the results...
+		Actually, very hard to tell where this should go....
 	
+
+buildlib
+	test --update
+		use cat `_libupdate_` vs any dynamic generatio
+		n
+		
+buildunit
+	-- i just like typing double dashes.... :)
+	--debug (use set -o debug)
+	--test (some code with other shells, but buildopts may already have this...)
+
+
+buildlic
+	add options to set author, copyright, etc.
 	
-	buildunit
-		-- i just like typing double dashes.... :)
-		--debug (use set -o debug)
-		--test (some code with other shells, but buildopts may already have this...)
-	
-	need a way to run a test after the fact (like after everything has been built:
-		rmmg will support --pre and --post as will some other scripts...
-		then something like
-			buildunit --test --this <x> | flame
 
-			save_to () {
-				eval 'FLAME='cat /dev/stdin
-			}
-			(via rmmg:) git commit -m "this"
-			
-	bu-term
-		-- use for testing out and evaluating different libraries....
-		WITHOUT making them part of your environment... (in case names clash, etc.)
-		you can open your own shell and do this...
-		include something to choose just these (can be within buildlib)
+need a way to run a test after the fact (like after everything has been built:
+	rmmg will support --pre and --post as will some other scripts...
+	then something like
+		buildunit --test --this <x> | flame
+
+		save_to () {
+			eval 'FLAME='cat /dev/stdin
+		}
+		(via rmmg:) git commit -m "this"
+		
+bu-term
+	-- use for testing out and evaluating different libraries....
+	WITHOUT making them part of your environment... (in case names clash, etc.)
+	you can open your own shell and do this...
+	include something to choose just these (can be within buildlib)
 
 
-
-
-generate portability
-	sh
-	ksh
-	bash
-	zsh
-
-	portability can be generated by running new code through the shell of choice...
-
-
-function list
-	mail(er)

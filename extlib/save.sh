@@ -5,7 +5,6 @@
 #-----------------------------------------------------#
 save() {
 	local LIBPROGRAM="save"
-	local TO=
 	local INDEX=
 	local VERBOSE=
 	
@@ -67,9 +66,28 @@ save() {
 			echo ${!TO}
 			echo "============"
 		}
+	
+		# Full test.
+		# echo "Entire /dev/stdin:"
+		# cat /dev/stdin
+		# echo "=================="
 
 		# Should run the eval.
-		eval "${TO}=\"`cat /dev/stdin`\""
+		# MEGA=</dev/stdin
+		# MEGA="$(</dev/stdin)"
+		# TO="$MEGA"
+
+#		 echo "ur so catty"
+		 MEGA=$(printf -- "%s\n" "$(cat /dev/stdin)")
+#		 echo "=================="
+
+#		 echo "$TO=\"$MEGA\""
+#		 eval '${TO}="'"$MEGA\""
+
+		 # echo "$MEGA"
+		# echo "${TO}='$(</dev/stdin)'"
+		# eval "${TO}=\"<$(cat /dev/stdin)\""
+		#eval "${TO}=\"$MEGA\""
 
 		[ ! -z $DO_DIAG ] && {
 			echo "Value of \$TO after eval run:"

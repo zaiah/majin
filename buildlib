@@ -76,15 +76,6 @@ General Options:
    exit $STATUS
 }
 
-#------------------------------------------------------
-# generate_library_file() 
-# 
-# Generates a file at the top level of some library.
-#-----------------------------------------------------#
-generate_library_file() {
-	# Start an array.
-	echo '...'
-}
 
 # Die if no arguments received.
 [ -z "$BASH_ARGV" ] && printf "Nothing to do\n" && usage 1
