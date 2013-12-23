@@ -65,10 +65,11 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
--d | --deploy                 Deploy bashutil 
-     --deploy-at <arg>        Deploy bashutil at some directory.
+-f | --first-run              Deploy bashutil 
+-c | --config <arg>           Use <arg> as the configuration directory.
 -i | --install-to <arg>       Installs bashutil to <arg> 
 -u | --uninstall              Uninstalls bashutil 
+-t | --total-uninstall        Performs a complete uninstall.
 -p | --update                 Updates? 
 -v|--verbose                  Be verbose in output.
 -h|--help                     Show this help and quit.
@@ -85,20 +86,25 @@ usage() {
 while [ $# -gt 0 ]
 do
    case "$1" in
-     -d|--deploy)
-         DEPLOY=true
-        	shift
-			CONFIG_DIR="$1"
+     -f|--first-run)
+         FIRST_RUN=true
       ;;
      -i|--install-to)
          INSTALL=true
 			shift
          INSTALL_DIR="$1"
       ;;
+     -c|--config)
+		  	shift
+         DEPLOY_DIR="$1"
+      ;;
+     -t|--total)
+         UNINSTALL_TOTAL=true
+      ;;
      -u|--uninstall)
          UNINSTALL=true
       ;;
-     -g|--generate)
+     -b|--library)
          LIB_GENERATE=true
       ;;
       -v|--verbose)
@@ -108,7 +114,7 @@ do
         usage 0
       ;;
       -*)
-      printf "Bad argument.\n";
+      printf "Unknown argument received: $1\n";
       exit 1
      ;;
       *) break;;
@@ -117,31 +123,45 @@ shift
 done
 
 
-[ ! -z $INSTALL ] && {
-	# Create teh host directories and all first.
-	# ( Running multiple things over time is intelligent )
-	# mkdir -p $HOST_DIRS 
+# Evaluate flags
+eval_flags
 
+
+# Do the first run.
+[ ! -z $FIRST_RUN ] && {
+	# Create the host directories and all first.
+	# echo mkdir $MKDIR_FLAGS ${HOST_DIRS[@]}
+	mkdir $MKDIR_FLAGS ${HOST_DIRS[@]}
+
+	# Copy all the licenses
+	# echo cp $CP_FLAGS $BINDIR/licenses/* $PROGRAM_DIR/licenses
+	cp $CP_FLAGS $BINDIR/licenses/* $PROGRAM_DIR/licenses
+}
+
+
+# Install
+[ ! -z $INSTALL ] && {
 	# Die if there's no install directory (can be done from installation)
 	[ -z "$INSTALL_DIR" ] && {
 		printf "No install directory found." > /dev/stderr
 	}
-
-	# copy all the licenses
-	# cp $CP_FLAGS $BINDIR/licenses/* $PROGRAM_DIR/licenses
 
 	# In use.
 	installation --do --to $INSTALL_DIR \
 		--these "buildlib,buildlic,buildopts,buildsql,buildunit,maintlib"
 }
 
-# [ ! -z $LIB_GENERATE ] && {
+
+# Generate the original library.
+[ ! -z $LIB_GENERATE ] && {
 	# Build the library.
 	# wget ...
 	# build core
-# }
+	printf '' > /dev/null
+}
 
 
+# Uninstall.
 [ ! -z $UNINSTALL ] && {
   	installation --undo 
 }

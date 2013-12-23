@@ -1,24 +1,22 @@
 
 bashutil=/home/zaiah/projects/bashutil/bashutil {
  HIER
- INSTALL
  LICENSE
  PROGRAM_DIR
  README.md
  SHELLS
- _libupdate_.sh
  bl.todo
  bu.vim
- buildlib
- buildlic
- buildopts
- buildsql
- buildunit
- install
+ buildlib.sh
+ buildlic.sh
+ buildopts.sh
+ buildsql.sh
+ buildunit.sh
+ install.sh
  library_progress.csv
- maintlib
- term
- update
+ maintlib.sh
+ term.sh
+ update.sh
  core=core {
   _libupdate_.sh
   core-test.sh

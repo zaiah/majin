@@ -15,15 +15,15 @@ bu (majin)
 
 		SETTINGS and INSTALL
 	
-	core test
-		*requires tmp_file (and all the test code)
-		*hence requires a lib/__
+x	core test
+x		*requires tmp_file (and all the test code)
+x		*hence requires a lib/__
 		options
 		traps
-		defaults
-		error
-			log
-			stderr
+x		defaults
+x		error
+x			log
+x			stderr
 		local vars and unsetting (there may be a way to do with a particular trap... or some other nonsense with declare)
 	
 	
