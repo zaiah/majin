@@ -4,7 +4,13 @@
 # Prints a nifty error message.
 #-----------------------------------------------------#
 error() {
-	LIBPROGRAM="error"
+	# Names and variables.
+	local LIBPROGRAM="error"
+	local ERR_FILE="/dev/stderr"  # this could be a few other places.	
+	local MESSAGE=
+	local EXIT_CODE=
+	local DO_STDERR=
+	local VERBOSE=
 	
 	# error_usage - Show usage message and die with $STATUS
 	error_usage() {
@@ -12,9 +18,10 @@ error() {
 	   echo "Usage: ./$LIBPROGRAM
 		[ -  ]
 	
-	-l | --log                    desc
-	-s | --stderr                 desc
-	-t | --to <arg>               desc
+	-l | --log <arg>              Send error messages to log file <arg> 
+	-m | --message <arg>          Send an error message along with something.
+	-e | --exit <sig>             Exit with <sig> besides default code of 1.
+	-s | --stderr                 Use /dev/stderr as typical error handler.
 	-v | --verbose                Be verbose in output.
 	-h | --help                   Show this help and quit.
 	"
@@ -29,16 +36,21 @@ error() {
 	while [ $# -gt 0 ]
 	do
 	   case "$1" in
+		  -m|--message)
+			  shift
+			  MESSAGE="$1"
+			;;
 	     -l|--log)
 	         DO_LOG=true
+				shift
+				ERR_FILE="$1"
+	      ;;
+	     -e|--exit)
+	         shift
+				EXIT_CODE="$1"
 	      ;;
 	     -s|--stderr)
 	         DO_STDERR=true
-	      ;;
-	     -t|--to)
-	         DO_TO=true
-	         shift
-	         TO="$1"
 	      ;;
 	     -v|--verbose)
 	        VERBOSE=true
@@ -55,9 +67,22 @@ error() {
 	   esac
 	shift
 	done
-	
-	# log
-	[ ! -z $DO_LOG ] && {
-	   printf '' > /dev/null
+
+	# Use default error reporting.
+	[ ! -z $DO_STDERR ] && ERR_FILE="/dev/stderr"
+
+	# Display error message.
+	printf -- "%s\n" "$MESSAGE" >> $ERR_FILE
+
+	# Exit if this is a big deal.
+	[ ! -z $DO_EXIT ] && {
+		exit $EXIT_CODE
 	}
+
+	# Unsets
+	unset LIBPROGRAM
+	unset MESSAGE
+	unset EXIT_CODE
+	unset DO_STDERR
+	unset VERBOSE
 }

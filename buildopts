@@ -83,7 +83,6 @@ General Options:
 }
 
 
-
 # Die if no string received.
 [ -z "$BASH_ARGV" ] && echo "Nothing to do." && usage 1 > /dev/stderr
 while [ $# -gt 0 ]
@@ -411,6 +410,17 @@ fi
 	}
 
 
+	# Errors, Traps, Standard files.
+	# (trap will be a built-in)
+	[ ! -z "$ERROR" ] && {
+		{
+			printf -- "%s\n" "error() {"
+			printf -- "\t%s\n" 'printf "$1\n" > /dev/stderr'
+			printf -- "%s\n" "}"
+		} > $FILENAME
+	}
+
+
 	# From
 	[ ! -z "$FROM" ] && {
 		# Catch arguments here if we want them.
@@ -709,6 +719,7 @@ fi
 	}
 } | sed "s/^/$ADD_TAB/g" >> $FILENAME
 
+sleep 250
 
 # Close off the remainder of the new library.
 [ ! -z $MAKE_LIBRARY ] && printf "}\n" >> $FILENAME

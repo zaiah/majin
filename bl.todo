@@ -15,18 +15,25 @@ bu (majin)
 
 		SETTINGS and INSTALL
 
+
 	making everything local
 		after the fact with declare?
 		make a temporary file, source the script in question, use declare
 			and add to the script
 		unsets can be handled too
 
+	
+	something for debugging
+		traps, (s,p,d)trace
 
 	sensible defaults
 		install
 			add to installation (--config) to set where a program's 
 				config files should go
 		trap
+			set consistent signal actions
+			other scripts can register functions 
+				(adding to what's there is the assumption, a trap array...)
 		standard function exit 
 			like if I make a mistake or if an argument isn't specified,
 			but I don't necessarily need it to succeed...

@@ -23,6 +23,7 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
   error.sh
   default_file_check.sh
   opteval.sh
+  trapper.sh
  }
  extlib=extlib {
   _libgen_.sh

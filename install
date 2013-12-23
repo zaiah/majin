@@ -65,6 +65,8 @@ usage() {
    echo "Usage: ./${PROGRAM}
 	[ -  ]
 
+-d | --deploy                 Deploy bashutil 
+     --deploy-at <arg>        Deploy bashutil at some directory.
 -i | --install-to <arg>       Installs bashutil to <arg> 
 -u | --uninstall              Uninstalls bashutil 
 -p | --update                 Updates? 
@@ -96,8 +98,8 @@ do
      -u|--uninstall)
          UNINSTALL=true
       ;;
-     -p|--update)
-         UPDATE=true
+     -g|--generate)
+         LIB_GENERATE=true
       ;;
       -v|--verbose)
         VERBOSE=true
@@ -114,23 +116,33 @@ do
 shift
 done
 
-if [ ! -z $DEPLOY ]
-then
 
-fi
+[ ! -z $INSTALL ] && {
+	# Create teh host directories and all first.
+	# ( Running multiple things over time is intelligent )
+	# mkdir -p $HOST_DIRS 
 
-if [ ! -z $INSTALL ]
-then
+	# Die if there's no install directory (can be done from installation)
 	[ -z "$INSTALL_DIR" ] && {
 		printf "No install directory found." > /dev/stderr
 	}
 
+	# copy all the licenses
+	# cp $CP_FLAGS $BINDIR/licenses/* $PROGRAM_DIR/licenses
+
+	# In use.
 	installation --do --to $INSTALL_DIR \
 		--these "buildlib,buildlic,buildopts,buildsql,buildunit,maintlib"
-fi
+}
 
-if [ ! -z $UNINSTALL ]
-then
+# [ ! -z $LIB_GENERATE ] && {
+	# Build the library.
+	# wget ...
+	# build core
+# }
+
+
+[ ! -z $UNINSTALL ] && {
   	installation --undo 
-fi
+}
 

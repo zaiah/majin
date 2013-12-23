@@ -54,22 +54,31 @@ installation() {
 	while [ $# -gt 0 ]
 	do
 		case $1 in
-			--do) 
+			-s|--single-file) 
+				SINGLE_FILE=true
+			;;
+		   -c|--config)
+				shift
+				CONFIG_DIR="$1"
+			;;
+			-d|--do) 
 				EXECUTE_INSTALL_ROUTINE=true
 			;;
-			--undo) 
+			-u|--undo) 
 				EXECUTE_UNINSTALL_ROUTINE=true
 			;;
-			--to) 
+			-o|--to) 
 				shift
-				INITIAL_INSTALL_DIR=$1
+				INITIAL_INSTALL_DIR="$1"
 			;;
-			--these|--this) 
+			-t|--these|--this) 
 				shift
-				LN_ARGS=$1
+				LN_ARGS="$1"
 			;;
 			-*)
-			break
+				printf "Unknown argument received: $1" > /dev/stderr
+				# script should die....
+				break
 			;;
 			*)
 				printf "This function must have the --to and "
@@ -109,7 +118,8 @@ installation() {
 		# Assume this directory could be impractically long.
 		if [ ! -d "$INITIAL_INSTALL_DIR" ] 
 		then
-			mkdir $SW_MKDIR_FLAGS $INITIAL_INSTALL_DIR 2>/dev/null || SW_MKDIR_FAIL=true
+			mkdir $SW_MKDIR_FLAGS $INITIAL_INSTALL_DIR 2>/dev/null || \
+				SW_MKDIR_FAIL=true
 			if [ ! -z $SW_MKDIR_FAIL ] 
 			then 
 				echo "Could not create $INITIAL_INSTALL_DIR.  Exiting..." 
@@ -124,7 +134,8 @@ installation() {
 		# Link all files.
 		for FILE in ${SW_INSTALLS[@]}
 		do
-			# If a shell script, did we use an extension? (goal is to have no .sh in /bin)
+			# If a shell script, did we use an extension? 
+			# (goal is to have no .sh in /bin)
 			if [ -f "${BINDIR}/${FILE}.sh" ] 
 			then 
 				FILE="${BINDIR}/${FILE}.sh" 
