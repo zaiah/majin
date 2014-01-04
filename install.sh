@@ -114,9 +114,9 @@ do
         usage 0
       ;;
       -*)
-      printf "Unknown argument received: $1\n";
-      exit 1
-     ;;
+      	printf "Unknown argument received: $1\n";
+      	exit 1
+     	;;
       *) break;;
    esac
 shift

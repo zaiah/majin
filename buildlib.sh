@@ -507,34 +507,34 @@ fi
 
 
 # include all the libraries
-[ ! -z $DO_INC_ALL ] && {
-	while read line
-	do
-		# Save this b/c it's our folder name for different lib functions.
-		if [[ ${line:0:1} == '#' ]] || [[ -z "${line}" ]]
-		then
-			continue
-
-		# Proc
-		else
-			FNAME="$(echo $line | awk -F ':' '{print $1}' )"
-			LIB_FILE="$(echo $line | awk -F ':' '{print $2}' )"
-			FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
-
-			# Did the user ask that this be excluded?
-			[ ! -z "$WITHOUT" ] && \
-				[[ $(is_element_present_in 'WITHOUT' "$FNAME") == 'true' ]] && \
-				continue 
-
-			# If the file doesn't exist, don't compile it.
-			if [ -f "$LIB_FILE" ] 
-			then 
-				( sed -n 2,${FL}p $LIB_FILE 
-				printf "\n" ) >> "$FILENAME"
-			fi
-		fi
-	done < $LOOKUP_MANIFEST
-}
+#[ ! -z $DO_INC_ALL ] && {
+#	while read line
+#	do
+#		# Save this b/c it's our folder name for different lib functions.
+#		if [[ ${line:0:1} == '#' ]] || [[ -z "${line}" ]]
+#		then
+#			continue
+#
+#		# Proc
+#		else
+#			FNAME="$(echo $line | awk -F ':' '{print $1}' )"
+#			LIB_FILE="$(echo $line | awk -F ':' '{print $2}' )"
+#			FL=$(wc -l "$LIB_FILE" 2>/dev/null | cut -d ' ' -f 1)
+#
+#			# Did the user ask that this be excluded?
+#			[ ! -z "$WITHOUT" ] && \
+#				[[ $(is_element_present_in 'WITHOUT' "$FNAME") == 'true' ]] && \
+#				continue 
+#
+#			# If the file doesn't exist, don't compile it.
+#			if [ -f "$LIB_FILE" ] 
+#			then 
+#				( sed -n 2,${FL}p $LIB_FILE 
+#				printf "\n" ) >> "$FILENAME"
+#			fi
+#		fi
+#	done < $LOOKUP_MANIFEST
+#}
 
 
 # include all the libraries

@@ -14,6 +14,7 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
  buildunit.sh
  install.sh
  library_progress.csv
+ genlib.sh
  maintlib.sh
  term.sh
  update.sh

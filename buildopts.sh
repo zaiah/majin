@@ -132,6 +132,10 @@ do
 			GENERATE=true
 		;;
 
+		-gi|--generate-install)
+			GENERATE_INSTALL=true
+		;;
+
 		-c|--comments)
 			DO_COMMENTS=true
 		;;
@@ -339,6 +343,8 @@ esac
 	[ ! -z $MAKE_LIBRARY ] && printf "${NAME}() {\n"
 } > $FILENAME
 
+
+# Generate install.
 
 # Make it look like a library.
 if [ ! -z $MAKE_LIBRARY ] 
