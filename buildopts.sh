@@ -119,7 +119,11 @@ do
 
 		-f|--from)
 			shift
-			FROM="$1"
+			[[ "$1" =~ '|' ]] && {
+				printf "Argument supplied via --from cannot contain a '|' character" > /dev/stderr
+				exit 1
+			}
+			[ -z "$FROM" ] && FROM="$1" || FROM="$FROM|$1"
 		;;
 
 		-p|--program)
@@ -223,10 +227,9 @@ do
 		--)
 		;;
 
-		-*) (
-				printf "Unknown argument received." 
-			 	usage 1 
-			) > $STDERR
+		-*) 
+			printf "Unknown argument received."  > $STDERR
+		 	usage 1 
 		;;
 
 		*) break # Is this smart?
@@ -279,11 +282,13 @@ then
 		[ ! -z $SHOW_USAGE ] || \
 		[ ! -z $ONLY_OPTIONS ]
 	then
-		( 
+		{
 			printf "%s" "No list supplied via --from!" 
 			usage 1
-		) > $STDERR
+		} > $STDERR
 	fi
+else
+	[[ "$FROM" =~ '|' ]] && FROM="`printf "$FROM" | sed 's/|/,/g'`"
 fi
 
 
