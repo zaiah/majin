@@ -1,4 +1,5 @@
 bu (majin)
+	*all about POSIX - http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_07_05
 	generate program_dirs:
 		lib -
 			all the libraries one collects over time and places everywhere....
@@ -125,6 +126,8 @@ F	need save_to (how to include)
 
 
 buildopts
+	Add option to evaluate for "open arguments" (e.g
+		./my-script big bot   where "big" is $1 and "bot is $2 and my-script knows what to do... )
 	Fix "unknown arg received." (Does not tell which argument caused the problem...)
 	option glob at top line
 	suspend verbose, help
@@ -194,7 +197,12 @@ buildunit
 	-- i just like typing double dashes.... :)
 	--debug (use set -o debug)
 	--test (some code with other shells, but buildopts may already have this...)
+	--generate (should always generate some cases)
 
+	workflow:
+		always need to generate cases (could be anything)
+		always need to parse some kind of return value (could be anything)
+		step through code
 
 buildlic
 	add options to set author, copyright, etc.
