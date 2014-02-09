@@ -65,6 +65,8 @@ Extraction:
      --extract-lines  <arg>   Extract range from code.
      --extract-stdin          Extract from /dev/stdin.
 -f | --from <arg>             Choose a file to extract library from.
+     --convert <arg>          Convert an existing file to a library.
+     --to <arg>               Dump file to <arg>
 
 General:
 -g | --get <arg>              Add a new library. 
@@ -95,124 +97,6 @@ locate_lib_name () {
 	done
 
 	SL=$(grep --line-number "$1 ()" $FROM | awk -F ':' '{ print $1 }')
-}
-
-
-# Stop and return block til character (using wc -b)
-#------------------------------------------------------
-# search_for() 
-# 
-# Search for a string of text ($1) within a script
-# file, paying attention to syntax rules.
-#
-# With BASH there are a ton of stupid rules to keep
-# in mind.
-# comments (#) for one
-# } b/c it can be a var
-#-----------------------------------------------------#
-search_for() {
-	# Harvest...
-	while [ $# -gt 0 ]
-	do
-		case "$1" in
-			-i|--in)
-				shift
-				__BLOCK__="$1"
-			;;
-			-c|--char|--this)
-				shift
-				__FIND__="${1:0:1}"
-			;;
-			-s|--string)
-				shift
-				__CHAR__="$1"
-			;;
-		esac
-		shift
-	done
-
-	# Probably ought to check if getting the block works...
-#	printf "%s" "$__BLOCK__"
-
-	# Escape any funny characters. 
-	__BLOCK__="$(printf "%s" "$__BLOCK__")"
-
-	# Define a new line here.
-NEWLINE="
-"
-
-	# Iterate through string supplied via $__BLOCK__
-	for __CHAR__ in `seq 0 ${#__BLOCK__}`
-	do
-		# Get the next character if match was !
-		# If not move on.
-		CHAR_1="${__BLOCK__:$__CHAR__:1}"
-
-		# Newlines typically mean the end of comments.
-		if [[ $CHAR_1 == $NEWLINE ]] 
-		then 
-			IN_COMM=false 
-			IN_VAR=false
-			continue 
-		fi
-
-		
-		# If it's in a var, need to skip.
-		if [[ $CHAR_1 == '$' ]] && \
-			[[ ${__BLOCK__:$(( $__CHAR__ + 1 )):1} == '{' ]]
-		then 
-			IN_VAR=true && continue
-		fi
-
-		[[ "$CHAR_1" == '{' ]] && [ "$IN_VAR" == true ] && continue
-
-		[[ $CHAR_1 == '}' ]] && [ "$IN_VAR" == true ] && {
-			IN_VAR=false
-			continue
-		}	
-
-		# If it's in a comment, need to skip.
-		if [[ $CHAR_1 == '#' ]] 
-		then
-			[ ! -z $IN_VAR ] && IN_COMM=true && continue
-		fi
-
-		# If it's a string we need to skip.
-		if [[ ${CHAR_1} == "'" ]] || [[ ${CHAR_1} == '"' ]]
-		then
-			if [ -z $IN_STR ] 
-			then
-				IN_STR=true 
-			
-			elif [ $IN_STR == false ] 
-			then 
-				IN_STR=true 
-
-			elif [ $IN_STR == true ] 
-			then 
-				IN_STR=false
-			fi
-			continue	
-		fi
-
-		# If you find it, great!
-		if [[ $CHAR_1 == $__FIND__ ]] 
-		then
-	#		printf ${__BLOCK__:$(( $__CHAR__ - 10  )):10} > /dev/stderr
-	#		printf s $IN_STR > /dev/stderr
-	#		printf c $IN_COMM > /dev/stderr
-			if [ "$IN_STR" == true ] || [ "$IN_COMM" == true ] 
-			then 
-				continue 
-#				printf $__FIND__
-			fi
-			printf $__CHAR__
-			break
-		fi
-	done
-
-#			printf "Found '$__FIND__' at $__CHAR__"
-	exit
 }
 
 
@@ -324,10 +208,24 @@ do
          DO_QUERY=true
       ;;
 
+		# Convert a standalone script to a library.
+     --convert)
+         DO_CONVERT=true
+			shift
+			CONVERTEE="$1"
+      ;;
+
 		# Grab a library from git repo. 
      -g|--get)
          DO_MERGE=true
       ;;
+
+		# Dump stdout to a particular filename.
+     --to)
+        	DUMP_TO=true
+			shift
+			TO="$1"
+		;;
 
 		# Lookup
      --lookup)
@@ -732,6 +630,88 @@ fi
 
 [ ! -z $DO_QUERY ] && printf "Not done..."
 [ ! -z $DO_MERGE ] && printf "Not done..."
+
+
+# Conversion
+[ ! -z $DO_CONVERT ] && {
+	# Check that a parameter actually arrived.
+	[ -z "$CONVERTEE" ] && {
+		printf "No filename supplied to --convert.\n" > /dev/stderr
+		exit 1
+	}
+
+	# Check that a file actually arrived.
+	[ ! -f "$CONVERTEE" ] && {
+		printf "Filename $CONVERTEE does not exist.\n" > /dev/stderr
+		exit 1
+	}
+
+	# Encapsulate with the function name and braces.
+	SCRIPT_NAME=${NAME:-${CONVERTEE%%.sh}}
+
+	# Get the first line number past the comments.
+	# (If you have no comments, how does this work?)
+	CONTENT_START=`grep --line-number -v '#' $CONVERTEE | head -n 1 | awk -F ':' '{ print $1 }'`
+	CONTENT_END=`wc -l $CONVERTEE | awk '{ print $1 }'`
+
+	# Extract the variable names first.
+	VAR_LIST=`extract_varnames -i $CONVERTEE`
+
+	# Create a temporary file.
+	tmp_file -n NEW_FUNCTION
+	{ 
+		# Start with comments if there are any. 
+		if [ ! -z $CONTENT_START ]
+		then
+			if [ $CONTENT_START -eq 2 ]
+			then
+				sed -n 1p $CONVERTEE
+			else
+				sed -n 1,$(( ${CONTENT_START} - 1 ))p $CONVERTEE
+			fi
+		fi
+
+		# Print the function name.
+		printf "\n%s\n" "function $SCRIPT_NAME () {" 
+
+		# Make all variables local.
+		printf "\t# Local variables\n"
+		printf "\tlocal %s=\n" $VAR_LIST
+
+		# Copy the rest of the script.
+		if [ ! -z $CONTENT_START ]
+		then
+			sed -n ${CONTENT_START},${CONTENT_END}p $CONVERTEE | sed 's/^/\t/' 
+		else
+			cat $CONVERTEE $NEW_FUNCTION
+		fi	
+
+		# Unset the local variables for no conflict with others.
+		printf "\n\t# Unset variables\n"
+		printf "\tunset %s\n" $VAR_LIST
+
+		# Close the function.
+		printf "}\n"
+	} > $NEW_FUNCTION	
+
+	# Replace any instances of BASH_ARGV
+	sed -i 's/BASH_ARGV/#/g' $NEW_FUNCTION 
+
+	# Replace any usage messages with a localized name.
+	sed -i "s/usage/${SCRIPT_NAME}_usage/g" $NEW_FUNCTION 
+
+	# Dump to stdout or to file.
+	[ ! -z $DUMP_TO ] && {
+		[ -z "$TO" ] && {
+			printf "No filename specified for the --to option." > /dev/stderr
+			exit 1
+		}
+		FILENAME=$TO
+	}
+
+	# Return the dump.
+	cp $NEW_FUNCTION $FILENAME
+}
 
 # Clean up any temporary files still laying around.
 tmp_file -w

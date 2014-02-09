@@ -1,11 +1,13 @@
 
 bashutil=/home/zaiah/projects/bashutil/bashutil {
+ 
+ 
+ CHANGELOG.md
  HIER
  LICENSE
  MEGADETH.md
  PROGRAM_DIR
  README.md
- CHANGELOG.md
  SHELLS
  bl.todo
  bu.vim
@@ -111,10 +113,16 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
   break_maps_by_delim.sh
   dbm.sh
   eval_flags.sh
+  extract_varnames.local
+  extract_varnames.sh
+  extract_varnames_f.sh
+  gg.sh
   installation.sh
   is_element_present_in.sh
   is_flag.sh
+  mm.sh
   push_option_alpha.sh
+  search_for.sh
   tmp_file.sh
   vars.sh
  }
@@ -147,5 +155,5 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
    }
   }
  }
- }
 }
+
