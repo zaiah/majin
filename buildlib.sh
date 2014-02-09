@@ -292,7 +292,7 @@ fi
 	# If there is no which you want this script to die.
 
 	# Generate execs list
-	( 
+	{ 
 		# Comments 
 		[ ! -z "$DO_COMMENTS" ] && printf "# Static variables\n"
 
@@ -315,7 +315,7 @@ fi
 			printf "\"\$${ETERM}\" " | tr '[a-z]' '[A-Z]'
 		done
 		printf ")\n\n" 
-	) >> $FILENAME	
+	} >> $FILENAME	
 }
 
 
