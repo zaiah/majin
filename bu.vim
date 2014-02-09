@@ -2,8 +2,10 @@
 bashutil=/home/zaiah/projects/bashutil/bashutil {
  HIER
  LICENSE
+ MEGADETH.md
  PROGRAM_DIR
  README.md
+ CHANGELOG.md
  SHELLS
  bl.todo
  bu.vim
@@ -12,9 +14,9 @@ bashutil=/home/zaiah/projects/bashutil/bashutil {
  buildopts.sh
  buildsql.sh
  buildunit.sh
+ genlib.sh
  install.sh
  library_progress.csv
- genlib.sh
  maintlib.sh
  term.sh
  update.sh

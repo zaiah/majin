@@ -201,7 +201,7 @@ NEWLINE="
 	#		printf ${__BLOCK__:$(( $__CHAR__ - 10  )):10} > /dev/stderr
 	#		printf s $IN_STR > /dev/stderr
 	#		printf c $IN_COMM > /dev/stderr
-			if [ $IN_STR == true ] || [ $IN_COMM == true ] 
+			if [ "$IN_STR" == true ] || [ "$IN_COMM" == true ] 
 			then 
 				continue 
 #				printf $__FIND__
@@ -437,6 +437,7 @@ then
 		}
 
 		# Does the file actually exist?
+		# [ -z "$FROM ] && { }
 		[ ! -f "$FROM" ] && {
 			(
 				printf "Error accessing file: $FROM.\n" 
@@ -516,7 +517,13 @@ then
 
 		# Save buffer to temporary file.
 		tmp_file -n BUFFILE
-		printf "%s" "$BUFFER" > $BUFFILE
+		if [ -z $DO_ADD ]
+		then 
+			printf "%s" "$BUFFER" > /dev/stdout
+			exit
+		else
+			printf "%s" "$BUFFER" > $BUFFILE
+		fi
 	}	
 
 

@@ -72,8 +72,11 @@ Shell Script tuning:
                             that script resides in.
 -y | --libref               Include references to library 
      --short-if             Use shorthand if-else form within logic.
+-q | --make-exec            Set the executable bit on the resultant file.
 -a | --all <arg>            Set all flags that don't require an argument.
                             <arg> is the name of the script.
+     --library              Instead of creating a standalone script, create
+	                         the scaffolding for a library.
 
 General Options:
 -v | --verbose              Be verbose in output.
@@ -212,6 +215,10 @@ do
 			SHORT_IF=true
 		;;
 
+		-q|--make-exec)
+			MAKE_EXECUTABLE=true
+		;;
+
 		-u|--usage)
 			SHOW_USAGE=true
 		;;
@@ -228,7 +235,7 @@ do
 		;;
 
 		-*) 
-			printf "Unknown argument received."  > $STDERR
+			printf "Unknown argument received: $1"  > $STDERR
 		 	usage 1 
 		;;
 
@@ -655,7 +662,7 @@ fi
 
 			# Catch unknown flags and show correct exit code.
 			printf '     -*)\n   ' 
-			printf '   printf \"Unknown argument received.\\n\" > /dev/stderr;\n'
+			printf '   printf \"Unknown argument received: $1\\n\" > /dev/stderr;\n'
 			if [ ! -z $SHOW_USAGE ]
 			then
 				printf "      $USAGE 1\n     ;;\n"
@@ -732,3 +739,6 @@ fi
 
 # Close off the remainder of the new library.
 [ ! -z $MAKE_LIBRARY ] && printf "}\n" >> $FILENAME
+
+# Make it executable?
+[ ! -z $MAKE_EXECUTABLE ] && chmod +x $FILENAME

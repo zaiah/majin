@@ -1,10 +1,7 @@
-#!/bin/bash
 #------------------------------------------------------
-# hello.sh 
+# generate library. 
 # 
-# A quick test for libraries.
+#
 #-----------------------------------------------------#
-hello() {
-	printf "Hello, you!"
-}
+
 

@@ -1,5 +1,0 @@
-CREATE TABLE classes (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	name TEXT,
-	description TEXT
-);
