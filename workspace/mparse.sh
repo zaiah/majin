@@ -17,11 +17,11 @@
 #
 # We parse each one or just a particular one.
 #-----------------------------------------------------#
-manifest_parse() {
+#manifest_parse() {
 	# Variable.
 	LIBPROGRAM="manifest_parse"
-	local LINE=
-	local FORMAT=
+	LINE=
+	FORMAT=
 	
 	# manifest_parse_usage - Show usage message and die with $STATUS
 	manifest_parse_usage() {
@@ -48,7 +48,7 @@ manifest_parse() {
 	
 	
 	# Die if no arguments received.
-	[ -z "$#" ] && {
+	[ -z "$BASH_ARGV" ] && {
 		printf "Nothing to do\n" > /dev/stderr 
 		manifest_parse_usage 1
 	}
@@ -141,7 +141,7 @@ manifest_parse() {
 
 	# When processing each line.
 	# Mega super bomb ray...
-	local FILE_POS=0
+	FILE_POS=0
 	while read LINE 
 	do
 		# Keep track of our position.
@@ -237,8 +237,7 @@ manifest_parse() {
 				}
 
 				# As long as the line is not empty. 
-				while \
-					[[ ! -z "$(sed -n ${FILE_POS}p $MANIFEST)" ]]  
+				while [[ ! -z "$(sed -n ${FILE_POS}p $MANIFEST)" ]]
 				do
 					UML="$(sed -n ${FILE_POS}p $MANIFEST)"
 
@@ -266,7 +265,4 @@ manifest_parse() {
 			*) continue ;;
 		esac
 	done < $MANIFEST
-}
-
-
-
+#}
